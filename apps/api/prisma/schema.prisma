@@ -1,0 +1,172 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Enums are not natively supported in SQLite, so they have been converted to Strings
+// Roles: TENANT, OWNER, ADMIN
+// VerificationStatus: PENDING, APPROVED, REJECTED
+// PropertyType: FLAT, APARTMENT, ROOM, PG, HOSTEL, SHARED_ROOM, VILLA, INDEPENDENT_HOUSE, COMMERCIAL
+// PropertyStatus: DRAFT, ACTIVE, PAUSED, RENTED
+// MediaType: IMAGE, VIDEO, TOUR
+
+model User {
+  id              String   @id @default(uuid())
+  name            String
+  email           String   @unique
+  phone           String?  @unique
+  password        String
+  role            String   @default("TENANT")
+  isEmailVerified Boolean  @default(false)
+  isPhoneVerified Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  verification       Verification?
+  roommatePreference RoommatePreference?
+  properties         Property[]
+  savedProperties    SavedProperty[]
+  visitRequests      VisitRequest[]
+  payments           Payment[]
+  chatMessages       ChatMessage[]
+  chats1             Chat[]              @relation("ChatParticipant1")
+  chats2             Chat[]              @relation("ChatParticipant2")
+}
+
+model Verification {
+  id         String             @id @default(uuid())
+  userId     String             @unique
+  user       User               @relation(fields: [userId], references: [id])
+  aadhaarUrl String?
+  panUrl     String?
+  status     String             @default("PENDING")
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+}
+
+model Property {
+  id               String         @id @default(uuid())
+  ownerId          String
+  owner            User           @relation(fields: [ownerId], references: [id])
+  title            String
+  description      String
+  propertyType     String
+  bhkType          String?
+  rent             Float
+  deposit          Float
+  maintenance      Float          @default(0)
+  address          String
+  city             String
+  state            String
+  pincode          String
+  lat              Float?
+  lng              Float?
+  availableFrom    DateTime
+  tenantPreference String?
+  furnishing       String?
+  status           String         @default("DRAFT")
+  isVerified       Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  media         PropertyMedia[]
+  amenities     PropertyAmenity[]
+  visitRequests VisitRequest[]
+  savedBy       SavedProperty[]
+  payments      Payment[]
+}
+
+model PropertyMedia {
+  id         String    @id @default(uuid())
+  propertyId String
+  property   Property  @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  url        String
+  type       String    @default("IMAGE")
+  createdAt  DateTime  @default(now())
+}
+
+model PropertyAmenity {
+  id          String   @id @default(uuid())
+  propertyId  String
+  property    Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  amenityName String
+}
+
+model SavedProperty {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, propertyId])
+}
+
+model RoommatePreference {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gender       String?
+  occupation   String?
+  foodPref     String?
+  smokingPref  String?
+  drinkingPref String?
+  budget       Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model VisitRequest {
+  id         String   @id @default(uuid())
+  tenantId   String
+  tenant     User     @relation(fields: [tenantId], references: [id])
+  propertyId String
+  property   Property @relation(fields: [propertyId], references: [id])
+  date       DateTime
+  time       String
+  status     String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, RESCHEDULED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Payment {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  propertyId        String?
+  property          Property? @relation(fields: [propertyId], references: [id])
+  amount            Float
+  razorpayOrderId   String   @unique
+  razorpayPaymentId String?
+  status            String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Chat {
+  id            String        @id @default(uuid())
+  participant1Id String
+  participant1  User          @relation("ChatParticipant1", fields: [participant1Id], references: [id])
+  participant2Id String
+  participant2  User          @relation("ChatParticipant2", fields: [participant2Id], references: [id])
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  messages      ChatMessage[]
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  chatId    String
+  chat      Chat     @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id])
+  content   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
