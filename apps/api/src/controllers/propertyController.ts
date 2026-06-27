@@ -38,16 +38,16 @@ export const createProperty = async (req: AuthRequest, res: Response) => {
         description,
         propertyType,
         bhkType,
-        rent: parseFloat(rent),
-        deposit: parseFloat(deposit),
+        rent: rent ? parseFloat(rent) : 0,
+        deposit: deposit ? parseFloat(deposit) : 0,
         maintenance: maintenance ? parseFloat(maintenance) : 0,
         address,
         city,
-        state,
+        state: state || "",
         pincode,
         lat: lat ? parseFloat(lat) : null,
         lng: lng ? parseFloat(lng) : null,
-        availableFrom: new Date(availableFrom),
+        availableFrom: availableFrom ? new Date(availableFrom) : new Date(),
         tenantPreference,
         furnishing,
         amenities: {
@@ -92,7 +92,7 @@ export const getProperties = async (req: AuthRequest, res: Response) => {
         media: true,
         amenities: true,
         owner: {
-          select: { name: true, verification: { select: { status: true } } }
+          select: { name: true, isSuperTrusted: true, verification: { select: { status: true } } }
         }
       },
       orderBy: { createdAt: 'desc' }
@@ -133,7 +133,7 @@ export const getPropertyById = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
 
     const property = await prisma.property.findUnique({
-      where: { id },
+      where: { id: id as string },
       include: {
         media: true,
         amenities: true,
@@ -141,6 +141,7 @@ export const getPropertyById = async (req: AuthRequest, res: Response) => {
           select: { 
             id: true,
             name: true, 
+            isSuperTrusted: true,
             createdAt: true,
             verification: { select: { status: true } } 
           }
@@ -155,6 +156,77 @@ export const getPropertyById = async (req: AuthRequest, res: Response) => {
     res.json(property);
   } catch (error) {
     console.error('Error fetching property:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// PUT /api/properties/:id
+export const updateProperty = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { id } = req.params;
+
+    // Verify ownership
+    const existingProperty = await prisma.property.findUnique({
+      where: { id: id as string }
+    });
+
+    if (!existingProperty) {
+      return res.status(404).json({ error: 'Property not found' });
+    }
+
+    if (existingProperty.ownerId !== userId) {
+      return res.status(403).json({ error: 'Forbidden: You do not own this property' });
+    }
+
+    const {
+      title,
+      description,
+      propertyType,
+      bhkType,
+      rent,
+      deposit,
+      maintenance,
+      address,
+      city,
+      state,
+      pincode,
+      lat,
+      lng,
+      availableFrom,
+      tenantPreference,
+      furnishing,
+      status
+    } = req.body;
+
+    const property = await prisma.property.update({
+      where: { id: id as string },
+      data: {
+        title,
+        description,
+        propertyType,
+        bhkType,
+        rent: rent !== undefined ? parseFloat(rent) : undefined,
+        deposit: deposit !== undefined ? parseFloat(deposit) : undefined,
+        maintenance: maintenance !== undefined ? parseFloat(maintenance) : undefined,
+        address,
+        city,
+        state,
+        pincode,
+        lat: lat !== undefined ? parseFloat(lat) : undefined,
+        lng: lng !== undefined ? parseFloat(lng) : undefined,
+        availableFrom: availableFrom ? new Date(availableFrom) : undefined,
+        tenantPreference,
+        furnishing,
+        status,
+      },
+    });
+
+    res.json(property);
+  } catch (error) {
+    console.error('Error updating property:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

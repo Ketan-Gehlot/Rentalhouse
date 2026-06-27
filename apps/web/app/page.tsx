@@ -13,10 +13,41 @@ import {
   Heart,
   Maximize2,
   ArrowRight,
+  PlusCircle,
+  Building2,
+  Key
 } from "lucide-react";
 import Navbar from "../components/Navbar";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-export default function Home() {
+export default async function Home() {
+  const { userId, getToken } = auth();
+  let role = null;
+
+  if (userId) {
+    try {
+      const token = await getToken();
+      // Fetch user profile from our backend to get the exact role
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiUrl}/users/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+        cache: 'no-store'
+      });
+      if (res.ok) {
+        const data = await res.json();
+        role = data.role;
+        // Redirect to onboarding if they are somehow not set (optional, handled here just in case)
+        if (!role || (role !== "TENANT" && role !== "OWNER")) {
+          // If default is TENANT we might still want to ask them, but if they specifically haven't chosen, 
+          // we could redirect. For now, if we don't have a role, we'll assume TENANT but show generic.
+        }
+      }
+    } catch (e) {
+      console.error("Failed to fetch profile", e);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-[#FAF3E0]" style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
       {/* ====== NAVIGATION ====== */}
@@ -28,119 +59,153 @@ export default function Home() {
         <div className="pointer-events-none absolute -left-40 bottom-0 h-[600px] w-[600px] rounded-full bg-gradient-to-tr from-emerald-50/60 via-blue-50/40 to-transparent blur-3xl" />
         
         <div className="relative mx-auto w-full px-4 sm:px-6 md:px-10 pb-20 pt-16">
-        <div className="grid items-center gap-10 lg:grid-cols-12 xl:gap-12">
-          {/* Left Content */}
-          <div className="lg:col-span-5 xl:col-span-5 xl:pl-4">
-            {/* Badge */}
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#f1f3f5] px-3.5 py-1.5">
-              <CheckCircle className="h-3.5 w-3.5 text-[#0052FF]" />
-              <span className="text-[11px] font-bold uppercase tracking-widest text-gray-600">
-                Verified Premium Homes
-              </span>
-            </div>
-
-            {/* Headline */}
-            <h1 className="text-[32px] sm:text-[40px] lg:text-[48px] xl:text-[52px] font-bold leading-[1.1] tracking-tight text-[#0F172A]">
-              Find Your Perfect
-              <br />
-              Space in India
-            </h1>
-
-            {/* Subtext */}
-            <p className="mt-6 max-w-[460px] text-[15px] leading-[1.7] text-gray-500">
-              Discover premium living spaces with direct owners, zero brokerage, and 100% verified listings. Your next home is just a search away.
-            </p>
-
-            {/* Search Form Box */}
-            <div className="mt-10 flex flex-wrap items-center gap-2 rounded-2xl bg-[#fafafa] p-2 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
-              {/* City/Locality */}
-              <div className="flex min-w-[140px] flex-1 items-center gap-3 px-3 py-2">
-                <MapPin className="h-5 w-5 shrink-0 text-gray-600" />
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-medium text-gray-400">
-                    City/Locality
-                  </span>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span className="text-[13px] sm:text-[14px] font-medium text-gray-700">
-                      Mumbai, Bandra W
+          <div className="grid items-center gap-10 lg:grid-cols-12 xl:gap-12">
+            {/* Left Content */}
+            <div className="lg:col-span-5 xl:col-span-5 xl:pl-4">
+              {role === "OWNER" ? (
+                // OWNER HERO
+                <>
+                  <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#f1f3f5] px-3.5 py-1.5">
+                    <Shield className="h-3.5 w-3.5 text-[#0052FF]" />
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-gray-600">
+                      For Property Owners
                     </span>
                   </div>
-                </div>
-              </div>
 
-              <div className="hidden sm:block h-10 w-[1px] bg-gray-200"></div>
+                  <h1 className="text-[32px] sm:text-[40px] lg:text-[48px] xl:text-[52px] font-bold leading-[1.1] tracking-tight text-[#0F172A]">
+                    Rent Your Space
+                    <br />
+                    with Confidence
+                  </h1>
 
-              {/* Property Type */}
-              <div className="flex min-w-[130px] flex-1 items-center gap-3 px-3 py-2">
-                <HomeIcon className="h-5 w-5 shrink-0 text-gray-600" />
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-medium text-gray-400">
-                    Property Type
-                  </span>
-                  <div className="flex items-center gap-1 mt-0.5">
-                    <span className="text-[13px] sm:text-[14px] font-medium text-gray-700">
-                      Any Type
-                    </span>
-                    <ChevronDown className="h-4 w-4 text-gray-500 ml-1" />
+                  <p className="mt-6 max-w-[460px] text-[15px] leading-[1.7] text-gray-500">
+                    List your property, find verified tenants, and manage your rentals with zero hassle. Join thousands of owners earning securely on RentMate.
+                  </p>
+
+                  <div className="mt-10 flex items-center gap-4">
+                    <Link href="/list-property" className="flex h-14 items-center gap-2 rounded-xl bg-[#0F172A] px-8 font-semibold text-white transition-all hover:bg-gray-800 hover:shadow-lg">
+                      <PlusCircle className="h-5 w-5" />
+                      List a Property
+                    </Link>
+                    <Link href="/properties/manage" className="flex h-14 items-center gap-2 rounded-xl border-2 border-gray-200 bg-white px-6 font-semibold text-gray-700 transition-all hover:border-gray-300 hover:bg-gray-50">
+                      <Building2 className="h-5 w-5" />
+                      Manage Listings
+                    </Link>
                   </div>
-                </div>
-              </div>
+                  
+                  <div className="mt-8 flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                      <span className="text-[12px] font-bold text-gray-600">Verified Tenants</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-emerald-500" />
+                      <span className="text-[12px] font-bold text-gray-600">Free Listing</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // TENANT OR UNAUTHENTICATED HERO
+                <>
+                  <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#f1f3f5] px-3.5 py-1.5">
+                    <CheckCircle className="h-3.5 w-3.5 text-[#0052FF]" />
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-gray-600">
+                      Verified Premium Homes
+                    </span>
+                  </div>
 
-              {/* Search Button */}
-              <button className="flex h-12 sm:h-14 items-center gap-2 rounded-xl bg-[#0052FF] px-6 sm:px-8 font-semibold text-white transition-all hover:bg-blue-700 whitespace-nowrap">
-                <Search className="h-4 w-4" />
-                Search
-              </button>
+                  <h1 className="text-[32px] sm:text-[40px] lg:text-[48px] xl:text-[52px] font-bold leading-[1.1] tracking-tight text-[#0F172A]">
+                    Find Your Perfect
+                    <br />
+                    Space in India
+                  </h1>
+
+                  <p className="mt-6 max-w-[460px] text-[15px] leading-[1.7] text-gray-500">
+                    Discover premium living spaces with direct owners, zero brokerage, and 100% verified listings. Your next home is just a search away.
+                  </p>
+
+                  {/* Search Form Box */}
+                  <div className="mt-10 flex flex-wrap items-center gap-2 rounded-2xl bg-[#fafafa] p-2 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
+                    <div className="flex min-w-[140px] flex-1 items-center gap-3 px-3 py-2">
+                      <MapPin className="h-5 w-5 shrink-0 text-gray-600" />
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-medium text-gray-400">City/Locality</span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-[13px] sm:text-[14px] font-medium text-gray-700">Mumbai, Bandra W</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="hidden sm:block h-10 w-[1px] bg-gray-200"></div>
+
+                    <div className="flex min-w-[130px] flex-1 items-center gap-3 px-3 py-2">
+                      <HomeIcon className="h-5 w-5 shrink-0 text-gray-600" />
+                      <div className="flex flex-col">
+                        <span className="text-[11px] font-medium text-gray-400">Property Type</span>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span className="text-[13px] sm:text-[14px] font-medium text-gray-700">Any Type</span>
+                          <ChevronDown className="h-4 w-4 text-gray-500 ml-1" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button className="flex h-12 sm:h-14 items-center gap-2 rounded-xl bg-[#0052FF] px-6 sm:px-8 font-semibold text-white transition-all hover:bg-blue-700 whitespace-nowrap">
+                      <Search className="h-4 w-4" />
+                      Find a house on rent
+                    </button>
+                  </div>
+
+                  {!userId && (
+                    <div className="mt-8 flex items-center gap-4">
+                      <span className="text-sm text-gray-500 font-medium">Are you a property owner?</span>
+                      <Link href="/sign-up" className="text-sm font-semibold text-[#0052FF] hover:underline">
+                        List your property here
+                      </Link>
+                    </div>
+                  )}
+
+                  <div className="mt-8 flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                      </svg>
+                      <span className="text-[12px] font-bold text-gray-600">10k+ Properties</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-4 w-4 text-[#0052FF]" />
+                      <span className="text-[12px] font-bold text-gray-600">Zero Brokerage</span>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Trust Badges */}
-            <div className="mt-8 flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <svg className="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                </svg>
-                <span className="text-[12px] font-bold text-gray-600">
-                  10k+ Properties
-                </span>
+            {/* Right Image */}
+            <div className="relative lg:col-span-7 xl:col-span-7">
+              <div className="overflow-hidden rounded-[32px] shadow-2xl shadow-gray-200/50">
+                <img
+                  src="/hero-property.png"
+                  alt="Premium living space"
+                  className="h-[300px] sm:h-[400px] lg:h-[520px] xl:h-[580px] w-full object-cover"
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <Shield className="h-4 w-4 text-[#0052FF]" />
-                <span className="text-[12px] font-bold text-gray-600">
-                  Zero Brokerage
-                </span>
+
+              {/* Overlay Card */}
+              <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-4 rounded-2xl bg-white/85 px-6 py-4 shadow-xl backdrop-blur-md">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0052FF]">
+                  {role === "OWNER" ? <Key className="h-5 w-5 text-white" /> : <Shield className="h-5 w-5 text-white" />}
+                </div>
+                <div className="min-w-max">
+                  <p className="text-[14px] font-bold text-[#0F172A]">
+                    {role === "OWNER" ? "Find Reliable Tenants" : "100% Verified Owners"}
+                  </p>
+                  <p className="text-[12px] text-gray-500 mt-0.5">
+                    {role === "OWNER" ? "Zero brokerage, completely secure." : "Connect directly, skip the middleman."}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-
-          {/* Right Image */}
-          <div className="relative lg:col-span-7 xl:col-span-7">
-            <div className="overflow-hidden rounded-[32px] shadow-2xl shadow-gray-200/50">
-              <Image
-                src="/hero-property.png"
-                alt="Premium living space"
-                width={1200}
-                height={800}
-                className="h-[300px] sm:h-[400px] lg:h-[520px] xl:h-[580px] w-full object-cover"
-                priority
-              />
-            </div>
-
-            {/* Overlay Card - Verified Owners */}
-            <div className="absolute bottom-8 left-1/2 flex -translate-x-1/2 items-center gap-4 rounded-2xl bg-white/85 px-6 py-4 shadow-xl backdrop-blur-md">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#0052FF]">
-                <Shield className="h-5 w-5 text-white" />
-              </div>
-              <div className="min-w-max">
-                <p className="text-[14px] font-bold text-[#0F172A]">
-                  100% Verified Owners
-                </p>
-                <p className="text-[12px] text-gray-500 mt-0.5">
-                  Connect directly, skip the<br />middleman.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
         </div>
       </section>
 

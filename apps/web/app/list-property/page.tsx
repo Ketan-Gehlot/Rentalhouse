@@ -4,8 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "../../lib/api";
-import { storage } from "../../lib/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import Navbar from "../../components/Navbar";
 import {
   Home,
@@ -47,6 +45,7 @@ export default function ListPropertyPage() {
   
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
 
   // Form State
   const [formData, setFormData] = useState({
@@ -92,31 +91,67 @@ export default function ListPropertyPage() {
     setFiles(files.filter((_, i) => i !== index));
   };
 
-  const uploadImagesToFirebase = async (): Promise<string[]> => {
+  const uploadImagesToCloudinary = async (): Promise<string[]> => {
     const urls: string[] = [];
-    
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      throw new Error("Cloudinary configuration is missing in .env.local");
+    }
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const storageRef = ref(storage, `properties/${Date.now()}_${file.name}`);
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
 
-      await new Promise<void>((resolve, reject) => {
-        uploadTask.on(
-          "state_changed",
-          (snapshot) => {
-            const progress = ((i + snapshot.bytesTransferred / snapshot.totalBytes) / files.length) * 100;
-            setUploadProgress(progress);
-          },
-          (error) => reject(error),
-          async () => {
-            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            urls.push(downloadURL);
-            resolve();
-          }
-        );
-      });
+      try {
+        // Simulate progress for UI
+        setUploadProgress(((i + 0.5) / files.length) * 100);
+
+        const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+        
+        if (data.secure_url) {
+          urls.push(data.secure_url);
+          setUploadProgress(((i + 1) / files.length) * 100);
+        } else {
+          throw new Error("Failed to upload image");
+        }
+      } catch (error) {
+        console.error("Cloudinary upload error:", error);
+        throw error;
+      }
     }
     return urls;
+  };
+
+  const handleNextStep = () => {
+    setErrorMsg("");
+    if (currentStep === 1) {
+      if (!formData.title.trim()) {
+        setErrorMsg("Please fill all the required fields: Property Title is required.");
+        return;
+      }
+    }
+    if (currentStep === 2) {
+      if (!formData.city.trim() || !formData.address.trim() || !formData.pincode.trim()) {
+        setErrorMsg("Please fill all the required fields: City, Address, and Pincode are required.");
+        return;
+      }
+    }
+    if (currentStep === 3) {
+      if (!formData.rent || !formData.deposit) {
+        setErrorMsg("Please fill all the required fields: Rent and Deposit are required.");
+        return;
+      }
+    }
+    setCurrentStep((prev) => Math.min(STEPS.length, prev + 1));
   };
 
   const handleSubmit = async () => {
@@ -129,8 +164,8 @@ export default function ListPropertyPage() {
     try {
       const token = await getToken();
       
-      // 1. Upload Images
-      const mediaUrls = await uploadImagesToFirebase();
+      // 1. Upload Images to Cloudinary
+      const mediaUrls = await uploadImagesToCloudinary();
 
       // 2. Submit Data
       const payload = {
@@ -143,7 +178,7 @@ export default function ListPropertyPage() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      router.push("/profile");
+      router.push("/properties/manage");
     } catch (error) {
       console.error("Error creating property:", error);
       alert("Failed to list property. Please try again.");
@@ -163,7 +198,9 @@ export default function ListPropertyPage() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div>
-              <label className="block text-sm font-semibold text-[#0F172A] mb-2">Property Title</label>
+              <label className="block text-sm font-semibold text-[#0F172A] mb-2">
+                Property Title <span className="text-red-500 ml-0.5">*</span>
+              </label>
               <input
                 type="text"
                 name="title"
@@ -221,7 +258,9 @@ export default function ListPropertyPage() {
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div>
-              <label className="block text-sm font-semibold text-[#0F172A] mb-2">City</label>
+              <label className="block text-sm font-semibold text-[#0F172A] mb-2">
+                City <span className="text-red-500 ml-0.5">*</span>
+              </label>
               <input
                 type="text"
                 name="city"
@@ -233,7 +272,9 @@ export default function ListPropertyPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-[#0F172A] mb-2">Full Address</label>
+              <label className="block text-sm font-semibold text-[#0F172A] mb-2">
+                Full Address <span className="text-red-500 ml-0.5">*</span>
+              </label>
               <textarea
                 name="address"
                 value={formData.address}
@@ -245,7 +286,9 @@ export default function ListPropertyPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-[#0F172A] mb-2">Pincode</label>
+              <label className="block text-sm font-semibold text-[#0F172A] mb-2">
+                Pincode <span className="text-red-500 ml-0.5">*</span>
+              </label>
               <input
                 type="text"
                 name="pincode"
@@ -263,7 +306,9 @@ export default function ListPropertyPage() {
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-[#0F172A] mb-2">Expected Rent (₹/mo)</label>
+                <label className="block text-sm font-semibold text-[#0F172A] mb-2">
+                  Expected Rent (₹/mo) <span className="text-red-500 ml-0.5">*</span>
+                </label>
                 <div className="relative">
                   <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
@@ -277,7 +322,9 @@ export default function ListPropertyPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-[#0F172A] mb-2">Security Deposit (₹)</label>
+                <label className="block text-sm font-semibold text-[#0F172A] mb-2">
+                  Security Deposit (₹) <span className="text-red-500 ml-0.5">*</span>
+                </label>
                 <div className="relative">
                   <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
@@ -466,6 +513,14 @@ export default function ListPropertyPage() {
 
         {/* Form Card */}
         <div className="rounded-2xl bg-white p-6 sm:p-8 shadow-xl shadow-gray-200/40 border border-gray-100">
+          
+          {errorMsg && (
+            <div className="mb-6 p-4 rounded-xl bg-red-50 border border-red-200 flex items-start text-red-700">
+              <span className="font-bold mr-2">Error:</span>
+              <p className="text-sm">{errorMsg}</p>
+            </div>
+          )}
+
           {renderStepContent()}
 
           <div className="mt-10 flex items-center justify-between pt-6 border-t border-gray-100">
@@ -480,7 +535,7 @@ export default function ListPropertyPage() {
             
             {currentStep < STEPS.length ? (
               <button
-                onClick={() => setCurrentStep(prev => Math.min(STEPS.length, prev + 1))}
+                onClick={handleNextStep}
                 className="flex items-center gap-2 rounded-xl bg-[#0052FF] px-6 py-3 text-sm font-bold text-white shadow-md shadow-blue-500/20 transition-all hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5"
               >
                 Continue

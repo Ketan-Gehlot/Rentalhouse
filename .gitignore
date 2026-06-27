@@ -52,3 +52,30 @@ yarn-error.log*
 # *.png
 # *.jpg
 # *.jpeg
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+.Trashes
+.Trash-*
+
+# Prisma/SQLite temporary files
+*.db-journal
+
+# Package manager logs
+pnpm-debug.log*
+pnpm-error.log*
+lerna-debug.log*
+
+# Environment variable backups
+.env.backup
+.env.example.backup
+.env.vault
+
+# Temporary folders
+tmp/
+temp/
+.tmp/
+.temp/

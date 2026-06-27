@@ -13,6 +13,8 @@ import {
   User,
   Mail,
   Calendar,
+  Crown,
+  Camera,
 } from "lucide-react";
 import { useAuth, useUser, SignOutButton } from "@clerk/nextjs";
 
@@ -20,8 +22,11 @@ export default function ProfilePage() {
   const { getToken } = useAuth();
   const { user, isLoaded } = useUser();
   const [verification, setVerification] = useState<any>(null);
+  const [dbUser, setDbUser] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRequestingTrusted, setIsRequestingTrusted] = useState(false);
+  const [faceFile, setFaceFile] = useState<File | null>(null);
 
   useEffect(() => {
     if (isLoaded) {
@@ -37,6 +42,7 @@ export default function ProfilePage() {
       const res = await api.get("/users/profile", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      setDbUser(res.data);
       setVerification(res.data.verification);
     } catch (error) {
       console.error("Failed to fetch profile", error);
@@ -46,23 +52,62 @@ export default function ProfilePage() {
   };
 
   const handleKycUpload = async () => {
+    if (!faceFile) {
+      alert("Please select a face image to upload.");
+      return;
+    }
+    
     setIsUploading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+      
+      const formData = new FormData();
+      formData.append("file", faceFile);
+      formData.append("upload_preset", uploadPreset!);
+
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      
+      const data = await uploadRes.json();
+      if (!data.secure_url) throw new Error("Upload failed");
+
       const token = await getToken();
       await api.post(
         "/users/kyc",
-        {},
+        { faceUrl: data.secure_url },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      
+      setFaceFile(null);
       await fetchProfile();
     } catch (error) {
       console.error("KYC upload failed", error);
-      alert("Failed to submit KYC documents");
+      alert("Failed to submit face verification");
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleRequestSuperTrusted = async () => {
+    setIsRequestingTrusted(true);
+    try {
+      const token = await getToken();
+      await api.post(
+        "/users/super-trusted/request",
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      await fetchProfile();
+    } catch (error) {
+      console.error("Request failed", error);
+      alert("Failed to request Super Trusted status");
+    } finally {
+      setIsRequestingTrusted(false);
     }
   };
 
@@ -158,12 +203,13 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* KYC Status Card */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100 flex flex-col">
-            <div className="flex items-center gap-2 mb-4">
-              <ShieldCheck className="h-5 w-5 text-gray-700" />
-              <h3 className="font-bold text-[#0F172A]">Verification Status</h3>
-            </div>
+          <div className="flex flex-col gap-6">
+            {/* KYC Status Card */}
+            <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100 flex flex-col">
+              <div className="flex items-center gap-2 mb-4">
+                <ShieldCheck className="h-5 w-5 text-gray-700" />
+                <h3 className="font-bold text-[#0F172A]">Face Verification</h3>
+              </div>
 
             {/* Status Views */}
             {!verification ? (
@@ -172,23 +218,29 @@ export default function ProfilePage() {
                   <div className="flex items-start gap-2">
                     <AlertCircle className="h-4 w-4 text-orange-600 mt-0.5 shrink-0" />
                     <p className="text-xs text-orange-800 leading-relaxed">
-                      Your profile is unverified. Upload your KYC documents to
-                      get the &quot;100% Verified&quot; badge on your listings.
+                      Upload a clear photo of your face to get verified instantly.
                     </p>
                   </div>
                 </div>
 
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => setFaceFile(e.target.files ? e.target.files[0] : null)}
+                  className="mb-3 text-xs w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+
                 <button
                   onClick={handleKycUpload}
-                  disabled={isUploading}
+                  disabled={isUploading || !faceFile}
                   className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-[#0F172A] py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:bg-gray-400"
                 >
                   {isUploading ? (
                     <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
                   ) : (
                     <>
-                      <UploadCloud className="h-4 w-4" />
-                      Upload KYC (Mock)
+                      <Camera className="h-4 w-4" />
+                      Verify My Face
                     </>
                   )}
                 </button>
@@ -215,6 +267,45 @@ export default function ProfilePage() {
                 </p>
               </div>
             ) : null}
+            </div>
+
+            {/* Super Trusted Card */}
+            <div className="rounded-2xl bg-gradient-to-br from-[#FFFBEB] to-[#FEF3C7] p-6 shadow-sm border border-yellow-200 flex flex-col relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-4 opacity-10">
+                <Crown className="h-24 w-24 text-yellow-600" />
+              </div>
+              <div className="flex items-center gap-2 mb-4 relative z-10">
+                <Crown className="h-5 w-5 text-yellow-600" />
+                <h3 className="font-bold text-yellow-900">Super Trusted</h3>
+              </div>
+              
+              {dbUser?.superTrustedStatus === "NONE" ? (
+                <div className="flex-1 flex flex-col relative z-10">
+                  <p className="text-xs text-yellow-800 mb-4 leading-relaxed font-medium">
+                    Stand out with the Super Trusted badge! Arrange a quick video meeting with our admin to get certified.
+                  </p>
+                  <button 
+                    onClick={handleRequestSuperTrusted}
+                    disabled={isRequestingTrusted}
+                    className="mt-auto w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 rounded-xl text-sm transition-colors shadow-sm disabled:opacity-50"
+                  >
+                    {isRequestingTrusted ? "Requesting..." : "Arrange a Meeting"}
+                  </button>
+                </div>
+              ) : dbUser?.superTrustedStatus === "PENDING" ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center py-4 relative z-10">
+                  <Clock className="h-8 w-8 text-yellow-600 mb-2" />
+                  <h4 className="font-bold text-yellow-900 text-sm">Meeting Requested</h4>
+                  <p className="text-xs text-yellow-800 mt-1">Our admin will contact you shortly to schedule the verification call.</p>
+                </div>
+              ) : dbUser?.superTrustedStatus === "APPROVED" ? (
+                <div className="flex-1 flex flex-col items-center justify-center text-center py-4 relative z-10">
+                  <Crown className="h-10 w-10 text-yellow-500 mb-2 filter drop-shadow-md" />
+                  <h4 className="font-black text-yellow-900 text-lg uppercase tracking-wider">Super Trusted</h4>
+                  <p className="text-xs text-yellow-800 font-bold mt-1">You hold the highest trust tier!</p>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </main>

@@ -21,10 +21,12 @@ model User {
   phone           String?  @unique
   password        String
   role            String   @default("TENANT")
-  isEmailVerified Boolean  @default(false)
-  isPhoneVerified Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  isEmailVerified    Boolean  @default(false)
+  isPhoneVerified    Boolean  @default(false)
+  isSuperTrusted     Boolean  @default(false)
+  superTrustedStatus String   @default("NONE") // NONE, PENDING, APPROVED
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   verification       Verification?
   roommatePreference RoommatePreference?
@@ -43,6 +45,7 @@ model Verification {
   user       User               @relation(fields: [userId], references: [id])
   aadhaarUrl String?
   panUrl     String?
+  faceUrl    String?
   status     String             @default("PENDING")
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
