@@ -38,6 +38,7 @@ export const createProperty = async (req: AuthRequest, res: Response) => {
         description,
         propertyType,
         bhkType,
+        status: 'ACTIVE',
         rent: rent ? parseFloat(rent) : 0,
         deposit: deposit ? parseFloat(deposit) : 0,
         maintenance: maintenance ? parseFloat(maintenance) : 0,
@@ -227,6 +228,40 @@ export const updateProperty = async (req: AuthRequest, res: Response) => {
     res.json(property);
   } catch (error) {
     console.error('Error updating property:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// POST /api/properties/:id/save
+export const toggleSaveProperty = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    const propertyId = req.params.id as string;
+
+    const existingSaved = await prisma.savedProperty.findUnique({
+      where: {
+        userId_propertyId: { userId, propertyId },
+      },
+    });
+
+    if (existingSaved) {
+      await prisma.savedProperty.delete({
+        where: { id: existingSaved.id },
+      });
+      return res.json({ message: 'Property removed from saved', isSaved: false });
+    }
+
+    const saved = await prisma.savedProperty.create({
+      data: {
+        userId,
+        propertyId,
+      },
+    });
+
+    res.json({ message: 'Property saved successfully', isSaved: true, saved });
+  } catch (error) {
+    console.error('Error toggling save property:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

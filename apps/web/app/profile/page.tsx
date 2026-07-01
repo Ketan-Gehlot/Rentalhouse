@@ -15,6 +15,9 @@ import {
   Calendar,
   Crown,
   Camera,
+  Phone,
+  Settings,
+  Heart,
 } from "lucide-react";
 import { useAuth, useUser, SignOutButton } from "@clerk/nextjs";
 
@@ -27,6 +30,8 @@ export default function ProfilePage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isRequestingTrusted, setIsRequestingTrusted] = useState(false);
   const [faceFile, setFaceFile] = useState<File | null>(null);
+  const [fullName, setFullName] = useState("");
+  const [savedProperties, setSavedProperties] = useState<any[]>([]);
 
   useEffect(() => {
     if (isLoaded) {
@@ -39,13 +44,16 @@ export default function ProfilePage() {
       const token = await getToken();
       if (!token) return;
 
-      const res = await api.get("/users/profile", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setDbUser(res.data);
-      setVerification(res.data.verification);
+      const [profileRes, savedRes] = await Promise.all([
+        api.get("/users/profile", { headers: { Authorization: `Bearer ${token}` } }),
+        api.get("/users/saved", { headers: { Authorization: `Bearer ${token}` } })
+      ]);
+      
+      setDbUser(profileRes.data);
+      setVerification(profileRes.data.verification);
+      setSavedProperties(savedRes.data);
     } catch (error) {
-      console.error("Failed to fetch profile", error);
+      console.error("Failed to fetch profile data", error);
     } finally {
       setIsLoading(false);
     }
@@ -77,7 +85,7 @@ export default function ProfilePage() {
       const token = await getToken();
       await api.post(
         "/users/kyc",
-        { faceUrl: data.secure_url },
+        { faceUrl: data.secure_url, fullName: fullName.trim() },
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -223,6 +231,14 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
+                <input
+                  type="text"
+                  placeholder="Enter your real full name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="mb-3 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[13px] text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-[#0052FF] focus:ring-4 focus:ring-[#0052FF]/10"
+                />
+
                 <input 
                   type="file" 
                   accept="image/*"
@@ -232,7 +248,7 @@ export default function ProfilePage() {
 
                 <button
                   onClick={handleKycUpload}
-                  disabled={isUploading || !faceFile}
+                  disabled={isUploading || !faceFile || !fullName.trim()}
                   className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl bg-[#0F172A] py-3 text-sm font-medium text-white transition-colors hover:bg-gray-800 disabled:bg-gray-400"
                 >
                   {isUploading ? (
@@ -308,6 +324,41 @@ export default function ProfilePage() {
             </div>
           </div>
         </div>
+
+        {/* Saved Properties Section */}
+        <div className="mt-8">
+          <h2 className="text-xl font-bold text-[#0F172A] mb-4">Saved Properties</h2>
+          {savedProperties.length === 0 ? (
+            <div className="rounded-2xl bg-white p-8 text-center border border-gray-100 shadow-sm flex flex-col items-center">
+              <Heart className="h-10 w-10 text-gray-200 mb-3" />
+              <p className="text-gray-500 font-medium">You haven't saved any properties yet.</p>
+              <Link href="/properties" className="mt-4 rounded-xl bg-gray-100 px-6 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors">
+                Explore Properties
+              </Link>
+            </div>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {savedProperties.map((saved) => (
+                <Link href={`/properties/${saved.property.id}`} key={saved.id} className="flex gap-4 rounded-2xl bg-white p-3 border border-gray-100 shadow-sm hover:shadow-md transition-shadow group">
+                  <div className="h-24 w-24 shrink-0 rounded-xl bg-gray-100 overflow-hidden relative">
+                    {saved.property.media?.[0]?.url && (
+                      <img src={saved.property.media[0].url} className="h-full w-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    )}
+                    <div className="absolute top-1.5 right-1.5 rounded-full bg-white/90 p-1 shadow-sm">
+                      <Heart className="h-3.5 w-3.5 fill-red-500 text-red-500" />
+                    </div>
+                  </div>
+                  <div className="flex flex-col justify-center py-1">
+                    <h4 className="font-bold text-[#0F172A] text-sm line-clamp-1">{saved.property.title}</h4>
+                    <p className="text-xs text-gray-500 mt-1">{saved.property.city}</p>
+                    <p className="text-sm font-black text-[#0052FF] mt-2">₹{saved.property.rent.toLocaleString('en-IN')}<span className="text-[10px] text-gray-400 font-normal">/mo</span></p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+
       </main>
     </div>
   );

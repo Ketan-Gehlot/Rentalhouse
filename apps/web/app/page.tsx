@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -18,35 +20,47 @@ import {
   Key
 } from "lucide-react";
 import Navbar from "../components/Navbar";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useAuth, useUser } from "@clerk/nextjs";
 
-export default async function Home() {
-  const { userId, getToken } = auth();
-  let role = null;
+export default function Home() {
+  const { userId, getToken, isLoaded } = useAuth();
+  const { user } = useUser();
+  const router = useRouter();
+  const [searchCity, setSearchCity] = useState("");
+  const [role, setRole] = useState<string | null>(null);
 
-  if (userId) {
+  useEffect(() => {
+    if (isLoaded && userId) {
+      fetchRole();
+    }
+  }, [isLoaded, userId]);
+
+  const fetchRole = async () => {
     try {
       const token = await getToken();
-      // Fetch user profile from our backend to get the exact role
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
       const res = await fetch(`${apiUrl}/users/profile`, {
-        headers: { Authorization: `Bearer ${token}` },
-        cache: 'no-store'
+        headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        role = data.role;
-        // Redirect to onboarding if they are somehow not set (optional, handled here just in case)
-        if (!role || (role !== "TENANT" && role !== "OWNER")) {
-          // If default is TENANT we might still want to ask them, but if they specifically haven't chosen, 
-          // we could redirect. For now, if we don't have a role, we'll assume TENANT but show generic.
-        }
+        setRole(data.role);
       }
     } catch (e) {
       console.error("Failed to fetch profile", e);
     }
-  }
+  };
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchCity.trim()) {
+      router.push(`/properties?city=${encodeURIComponent(searchCity.trim())}`);
+    } else {
+      router.push('/properties');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[#FAF3E0]" style={{ fontFamily: "var(--font-inter, 'Inter', sans-serif)" }}>
@@ -125,34 +139,25 @@ export default async function Home() {
                   </p>
 
                   {/* Search Form Box */}
-                  <div className="mt-10 flex flex-wrap items-center gap-2 rounded-2xl bg-[#fafafa] p-2 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-gray-100">
-                    <div className="flex min-w-[140px] flex-1 items-center gap-3 px-3 py-2">
-                      <MapPin className="h-5 w-5 shrink-0 text-gray-600" />
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-medium text-gray-400">City/Locality</span>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-[13px] sm:text-[14px] font-medium text-gray-700">Mumbai, Bandra W</span>
+                  <div className="mt-12 w-full max-w-3xl animate-in fade-in slide-in-from-bottom-8 duration-700 delay-300">
+                    <div className="rounded-3xl bg-white/70 backdrop-blur-xl p-2 sm:p-3 shadow-2xl shadow-[#0052FF]/10 ring-1 ring-white/50">
+                      <form onSubmit={handleSearch} className="flex flex-col sm:flex-row items-center gap-3">
+                        <div className="flex w-full items-center gap-3 rounded-2xl bg-white px-4 py-3 sm:py-4 shadow-sm ring-1 ring-gray-100 transition-shadow focus-within:ring-2 focus-within:ring-[#0052FF]/20">
+                          <MapPin className="h-5 w-5 text-[#0052FF]" />
+                          <input
+                            type="text"
+                            value={searchCity}
+                            onChange={(e) => setSearchCity(e.target.value)}
+                            placeholder="Search by city (e.g. Bangalore, Mumbai)..."
+                            className="w-full bg-transparent text-[15px] sm:text-[17px] text-gray-800 placeholder:text-gray-400 focus:outline-none"
+                          />
                         </div>
-                      </div>
+                        <button type="submit" className="w-full sm:w-auto shrink-0 rounded-2xl bg-[#0052FF] px-8 py-3 sm:py-4 text-[15px] sm:text-[17px] font-bold text-white shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5 hover:bg-blue-600 hover:shadow-blue-500/40">
+                          <Search className="h-5 w-5 sm:hidden" />
+                          <span className="hidden sm:inline">Search</span>
+                        </button>
+                      </form>
                     </div>
-
-                    <div className="hidden sm:block h-10 w-[1px] bg-gray-200"></div>
-
-                    <div className="flex min-w-[130px] flex-1 items-center gap-3 px-3 py-2">
-                      <HomeIcon className="h-5 w-5 shrink-0 text-gray-600" />
-                      <div className="flex flex-col">
-                        <span className="text-[11px] font-medium text-gray-400">Property Type</span>
-                        <div className="flex items-center gap-1 mt-0.5">
-                          <span className="text-[13px] sm:text-[14px] font-medium text-gray-700">Any Type</span>
-                          <ChevronDown className="h-4 w-4 text-gray-500 ml-1" />
-                        </div>
-                      </div>
-                    </div>
-
-                    <button className="flex h-12 sm:h-14 items-center gap-2 rounded-xl bg-[#0052FF] px-6 sm:px-8 font-semibold text-white transition-all hover:bg-blue-700 whitespace-nowrap">
-                      <Search className="h-4 w-4" />
-                      Find a house on rent
-                    </button>
                   </div>
 
                   {!userId && (
@@ -347,7 +352,7 @@ export default async function Home() {
                     <span>1,200 sqft</span>
                   </div>
                   <Link
-                    href="/property/1"
+                    href="/properties/1"
                     className="rounded-lg border border-[#3B82F6]/20 bg-blue-50/50 px-3 py-1 text-[11px] font-medium text-[#3B82F6] transition-colors hover:bg-blue-50"
                   >
                     View Details
@@ -403,7 +408,7 @@ export default async function Home() {
                     <span>950 sqft</span>
                   </div>
                   <Link
-                    href="/property/2"
+                    href="/properties/2"
                     className="rounded-lg border border-[#3B82F6]/20 bg-blue-50/50 px-3 py-1 text-[11px] font-medium text-[#3B82F6] transition-colors hover:bg-blue-50"
                   >
                     View Details
@@ -459,164 +464,11 @@ export default async function Home() {
                     <span>2,400 sqft</span>
                   </div>
                   <Link
-                    href="/property/3"
+                    href="/properties/3"
                     className="rounded-lg border border-[#3B82F6]/20 bg-blue-50/50 px-3 py-1 text-[11px] font-medium text-[#3B82F6] transition-colors hover:bg-blue-50"
                   >
                     View Details
                   </Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ====== FIND YOUR NEXT FLATMATE ====== */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-[#EFE3C8] via-[#FAF3E0] to-[#E2D1B3] py-24">
-        <div className="pointer-events-none absolute right-0 top-0 h-[500px] w-[500px] rounded-full bg-blue-200/20 blur-3xl" />
-        <div className="relative mx-auto w-full px-2">
-          <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#0F172A] to-[#1e293b]">
-            <div className="grid items-center lg:grid-cols-2">
-              {/* Left Content */}
-              <div className="p-10 md:p-12">
-                <div className="mb-5 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3.5 py-1">
-                  <span className="text-[10px] font-semibold uppercase tracking-widest text-blue-300">
-                    👥 New Feature
-                  </span>
-                </div>
-                <h2 className="text-[30px] font-bold leading-tight text-white">
-                  Find your next flatmate
-                </h2>
-                <p className="mt-4 max-w-[380px] text-[13px] leading-relaxed text-gray-400">
-                  Our AI-driven compatibility engine matches you with
-                  like-minded individuals based on lifestyle, habits, and
-                  preferences. Co-living, perfectly balanced.
-                </p>
-
-                {/* Checkmarks */}
-                <div className="mt-7 space-y-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#3B82F6]">
-                      <Check className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="text-[13px] text-gray-300">
-                      Verified Background Checks
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2.5">
-                    <div className="flex h-5 w-5 items-center justify-center rounded-full bg-[#3B82F6]">
-                      <Check className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="text-[13px] text-gray-300">
-                      Lifestyle Compatibility Scoring
-                    </span>
-                  </div>
-                </div>
-
-                <button className="mt-7 rounded-lg bg-[#3B82F6] px-5 py-2.5 text-[13px] font-semibold text-white shadow-lg shadow-blue-900/30 transition-all hover:bg-[#2563EB]">
-                  Try Roommate Finder
-                </button>
-              </div>
-
-              {/* Right - Compatibility Chart Card */}
-              <div className="flex items-center justify-center p-6 md:p-10">
-                <div className="w-full max-w-[340px] rounded-2xl border border-white/10 bg-white/[0.04] p-5 backdrop-blur-md">
-                  {/* Profile Avatars + Score */}
-                  <div className="mb-5 flex items-center justify-center gap-4">
-                    {/* You */}
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
-                        <Users className="h-4 w-4 text-blue-300" />
-                      </div>
-                      <span className="text-[10px] text-gray-400">You</span>
-                    </div>
-
-                    {/* Score */}
-                    <div className="relative flex h-16 w-16 items-center justify-center">
-                      <svg className="h-16 w-16 -rotate-90" viewBox="0 0 100 100">
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r="42"
-                          stroke="rgba(255,255,255,0.08)"
-                          strokeWidth="6"
-                          fill="none"
-                        />
-                        <circle
-                          cx="50"
-                          cy="50"
-                          r="42"
-                          stroke="#3B82F6"
-                          strokeWidth="6"
-                          fill="none"
-                          strokeDasharray={`${94 * 2.638} ${100 * 2.638}`}
-                          strokeLinecap="round"
-                        />
-                      </svg>
-                      <div className="absolute text-center">
-                        <span className="text-lg font-bold text-white">94</span>
-                        <span className="text-[10px] text-blue-300">%</span>
-                      </div>
-                    </div>
-
-                    {/* Match */}
-                    <div className="flex flex-col items-center gap-1">
-                      <span className="text-[9px] text-gray-500">Match Score</span>
-                    </div>
-
-                    {/* Priya */}
-                    <div className="flex flex-col items-center gap-1">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10">
-                        <Users className="h-4 w-4 text-blue-300" />
-                      </div>
-                      <span className="text-[10px] text-gray-400">Priya S.</span>
-                    </div>
-                  </div>
-
-                  {/* Radar-like Labels + Line Chart Area */}
-                  <div className="relative h-36 w-full overflow-hidden rounded-xl bg-white/[0.03]">
-                    {/* Labels */}
-                    <div className="absolute left-2 top-2 text-[9px] text-gray-500">Cleanliness</div>
-                    <div className="absolute right-2 top-2 text-[9px] text-gray-500">High Match</div>
-                    <div className="absolute left-2 bottom-2 text-[9px] text-gray-500">Schedule</div>
-                    <div className="absolute right-2 bottom-2 text-[9px] text-gray-500">Good Match</div>
-
-                    {/* SVG Line Chart */}
-                    <svg className="h-full w-full" viewBox="0 0 300 140" preserveAspectRatio="none">
-                      {/* Grid Lines */}
-                      <line x1="0" y1="35" x2="300" y2="35" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                      <line x1="0" y1="70" x2="300" y2="70" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                      <line x1="0" y1="105" x2="300" y2="105" stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-
-                      {/* Gradient Fill */}
-                      <defs>
-                        <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.3" />
-                          <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.02" />
-                        </linearGradient>
-                      </defs>
-
-                      {/* Area Fill */}
-                      <path
-                        d="M 0 90 Q 40 80, 60 60 Q 80 40, 120 35 Q 160 30, 180 25 Q 220 30, 240 40 Q 270 50, 300 55 L 300 140 L 0 140 Z"
-                        fill="url(#chartGrad)"
-                      />
-
-                      {/* Line */}
-                      <path
-                        d="M 0 90 Q 40 80, 60 60 Q 80 40, 120 35 Q 160 30, 180 25 Q 220 30, 240 40 Q 270 50, 300 55"
-                        stroke="#3B82F6"
-                        strokeWidth="2"
-                        fill="none"
-                      />
-
-                      {/* Dots */}
-                      <circle cx="60" cy="60" r="3" fill="#3B82F6" />
-                      <circle cx="120" cy="35" r="3" fill="#3B82F6" />
-                      <circle cx="180" cy="25" r="3" fill="#3B82F6" />
-                      <circle cx="240" cy="40" r="3" fill="#3B82F6" />
-                    </svg>
-                  </div>
                 </div>
               </div>
             </div>

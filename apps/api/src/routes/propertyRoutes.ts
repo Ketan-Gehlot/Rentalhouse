@@ -6,6 +6,7 @@ import {
   getMyListings,
   getPropertyById,
   updateProperty,
+  toggleSaveProperty,
 } from '../controllers/propertyController';
 
 const router = Router();
@@ -14,9 +15,12 @@ const router = Router();
 router.get('/', getProperties);
 router.get('/:id', getPropertyById);
 
-// Protected routes
-router.post('/', authenticateJWT, createProperty);
-router.get('/user/my-listings', authenticateJWT, getMyListings);
-router.put('/:id', authenticateJWT, updateProperty);
+// Authenticated routes
+router.use(authenticateJWT);
+
+router.post('/', createProperty);
+router.get('/user/my-listings', getMyListings);
+router.put('/:id', updateProperty);
+router.post('/:id/save', toggleSaveProperty);
 
 export default router;

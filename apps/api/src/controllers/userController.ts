@@ -65,10 +65,17 @@ export const uploadKyc = async (req: AuthRequest, res: Response) => {
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-    const { faceUrl } = req.body;
+    const { faceUrl, fullName } = req.body;
 
     if (!faceUrl) {
       return res.status(400).json({ error: 'faceUrl is required' });
+    }
+
+    if (fullName) {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { name: fullName }
+      });
     }
 
     const existingVerification = await prisma.verification.findUnique({
@@ -103,7 +110,7 @@ export const uploadKyc = async (req: AuthRequest, res: Response) => {
 
 export const requestSuperTrusted = async (req: AuthRequest, res: Response) => {
   try {
-    const userId = req.auth?.userId;
+    const userId = req.auth?.userId as string;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
     const user = await prisma.user.update({
@@ -126,7 +133,7 @@ export const requestSuperTrusted = async (req: AuthRequest, res: Response) => {
 
 export const approveSuperTrusted = async (req: AuthRequest, res: Response) => {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId as string;
     
     // In a real app, you would verify the requester is actually an ADMIN
     // const adminId = req.auth?.userId;
@@ -184,6 +191,34 @@ export const updateRole = async (req: AuthRequest, res: Response) => {
     res.json({ message: 'Role updated successfully', user });
   } catch (error) {
     console.error('Error updating role:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+export const getSavedProperties = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const saved = await prisma.savedProperty.findMany({
+      where: { userId },
+      include: {
+        property: {
+          include: {
+            media: true,
+            amenities: true,
+            owner: {
+              select: { name: true, isSuperTrusted: true, verification: { select: { status: true } } }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(saved);
+  } catch (error) {
+    console.error('Error fetching saved properties:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

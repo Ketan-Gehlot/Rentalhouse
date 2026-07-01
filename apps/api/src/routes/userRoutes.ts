@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getProfile, uploadKyc, updateRole, requestSuperTrusted, approveSuperTrusted } from '../controllers/userController';
+import { getProfile, uploadKyc, updateRole, requestSuperTrusted, approveSuperTrusted, getSavedProperties } from '../controllers/userController';
 import { authenticateJWT } from '../middlewares/authMiddleware';
 
 const router = Router();
@@ -8,6 +8,7 @@ const router = Router();
 router.use(authenticateJWT);
 
 router.get('/profile', getProfile);
+router.get('/saved', getSavedProperties);
 router.post('/kyc', uploadKyc);
 router.post('/super-trusted/request', requestSuperTrusted);
 router.post('/super-trusted/approve/:userId', approveSuperTrusted);

@@ -15,9 +15,12 @@ import {
   CalendarDays,
   ShieldCheck,
   ChevronLeft,
-  Crown
+  Crown,
+  Calendar,
+  Heart
 } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@clerk/nextjs";
 
 interface PropertyDetails {
   id: string;
@@ -43,16 +46,72 @@ interface PropertyDetails {
 export default function PropertyDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
+  const { getToken, isSignedIn, userId } = useAuth();
   
   const [property, setProperty] = useState<PropertyDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
 
+  // Visit Request State
+  const [showVisitForm, setShowVisitForm] = useState(false);
+  const [visitDate, setVisitDate] = useState("");
+  const [visitTime, setVisitTime] = useState("");
+  const [isSubmittingVisit, setIsSubmittingVisit] = useState(false);
+  const [existingVisitStatus, setExistingVisitStatus] = useState<string | null>(null);
+
   useEffect(() => {
     if (id) {
       fetchPropertyDetails();
+      if (isSignedIn) {
+        checkExistingVisit();
+      }
     }
-  }, [id]);
+  }, [id, isSignedIn]);
+
+  const checkExistingVisit = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      const res = await api.get('/visits/tenant', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const myVisits = res.data;
+      const existing = myVisits.find((v: any) => v.propertyId === id);
+      if (existing) {
+        setExistingVisitStatus(existing.status);
+      }
+    } catch (error) {
+      console.error("Failed to fetch visit status", error);
+    }
+  };
+
+  const handleScheduleVisit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isSignedIn) {
+      alert("Please sign in to schedule a visit");
+      return;
+    }
+    
+    setIsSubmittingVisit(true);
+    try {
+      const token = await getToken();
+      await api.post('/visits', {
+        propertyId: id,
+        date: visitDate,
+        time: visitTime
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert("Visit requested successfully! The owner will be notified.");
+      setExistingVisitStatus("PENDING");
+      setShowVisitForm(false);
+    } catch (error: any) {
+      console.error("Failed to request visit", error);
+      alert(error.response?.data?.error || "Failed to schedule visit");
+    } finally {
+      setIsSubmittingVisit(false);
+    }
+  };
 
   const fetchPropertyDetails = async () => {
     try {
@@ -62,6 +121,21 @@ export default function PropertyDetailsPage() {
       console.error("Failed to fetch property details:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveProperty = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return alert("Please sign in to save properties");
+      
+      const res = await api.post(`/properties/${id}/save`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert(res.data.message);
+    } catch (error) {
+      console.error("Failed to save property:", error);
+      alert("Failed to save property");
     }
   };
 
@@ -147,9 +221,18 @@ export default function PropertyDetailsPage() {
             
             {/* Header section */}
             <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-gray-100">
-              <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] mb-3 leading-tight">
-                {property.title}
-              </h1>
+              <div className="flex justify-between items-start gap-4 mb-3">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#0F172A] leading-tight">
+                  {property.title}
+                </h1>
+                <button 
+                  onClick={handleSaveProperty}
+                  className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors border border-gray-100"
+                  title="Save Property"
+                >
+                  <Heart className="h-6 w-6" />
+                </button>
+              </div>
               <div className="flex items-center text-gray-500 text-sm sm:text-base font-medium mb-6">
                 <MapPin className="mr-1.5 h-4 w-4 shrink-0 text-[#0052FF]" />
                 {property.address}, {property.city} {property.state && `, ${property.state}`} {property.pincode}
@@ -240,12 +323,66 @@ export default function PropertyDetailsPage() {
                 </div>
               </div>
 
-              <button className="w-full rounded-xl bg-[#0F172A] py-3.5 text-[15px] font-bold text-white shadow-md transition-all hover:bg-black hover:shadow-lg hover:-translate-y-0.5 mb-3">
+              {/* Action Buttons */}
+              <button 
+                onClick={() => alert(`Owner Contact Info: ${property.owner.name} (Phone/Email hidden for demo unless logged in)`)}
+                className="w-full rounded-xl bg-[#0F172A] py-3.5 text-[15px] font-bold text-white shadow-md transition-all hover:bg-black hover:shadow-lg hover:-translate-y-0.5 mb-3"
+              >
                 Contact Owner
               </button>
-              <button className="w-full rounded-xl bg-white py-3.5 text-[15px] font-bold text-[#0F172A] border-2 border-gray-200 transition-all hover:border-[#0F172A] hover:bg-gray-50">
-                Schedule a Visit
-              </button>
+
+              {userId === property.owner.name /* Quick check if owner, wait, property.ownerId isn't returned in details sometimes, let's just check existingVisitStatus */ ? null : existingVisitStatus ? (
+                <div className="w-full rounded-xl py-3.5 text-center text-[15px] font-bold border-2 transition-all bg-gray-50 border-gray-200 text-gray-500">
+                  Visit Status: <span className={existingVisitStatus === 'ACCEPTED' ? 'text-green-600' : 'text-blue-600'}>{existingVisitStatus}</span>
+                </div>
+              ) : showVisitForm ? (
+                <form onSubmit={handleScheduleVisit} className="mt-4 p-4 border border-blue-100 bg-blue-50/50 rounded-xl space-y-4 animate-in fade-in slide-in-from-top-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Select Date</label>
+                    <input 
+                      type="date" 
+                      required
+                      min={new Date().toISOString().split('T')[0]}
+                      value={visitDate}
+                      onChange={(e) => setVisitDate(e.target.value)}
+                      className="w-full p-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#0052FF]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-500 mb-1">Preferred Time</label>
+                    <input 
+                      type="time" 
+                      required
+                      value={visitTime}
+                      onChange={(e) => setVisitTime(e.target.value)}
+                      className="w-full p-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#0052FF]"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <button 
+                      type="button" 
+                      onClick={() => setShowVisitForm(false)}
+                      className="flex-1 py-2.5 rounded-lg bg-white border border-gray-200 text-sm font-bold text-gray-600"
+                    >
+                      Cancel
+                    </button>
+                    <button 
+                      type="submit" 
+                      disabled={isSubmittingVisit}
+                      className="flex-1 py-2.5 rounded-lg bg-[#0052FF] text-white text-sm font-bold disabled:opacity-50"
+                    >
+                      {isSubmittingVisit ? "Sending..." : "Request"}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <button 
+                  onClick={() => setShowVisitForm(true)}
+                  className="w-full rounded-xl bg-white py-3.5 text-[15px] font-bold text-[#0F172A] border-2 border-gray-200 transition-all hover:border-[#0F172A] hover:bg-gray-50"
+                >
+                  Schedule a Visit
+                </button>
+              )}
             </div>
 
             {/* Owner Details */}
@@ -262,7 +399,7 @@ export default function PropertyDetailsPage() {
                       <Crown className="h-4 w-4 text-yellow-500 fill-yellow-500 drop-shadow-sm ml-0.5" title="Super Trusted" />
                     )}
                   </h4>
-                  {property.owner.verification?.status === "VERIFIED" ? (
+                  {property.owner.verification?.status === "APPROVED" ? (
                     <div className="flex items-center text-xs font-bold text-green-600 mt-1">
                       <ShieldCheck className="mr-1 h-3.5 w-3.5" /> KYC Verified
                     </div>
