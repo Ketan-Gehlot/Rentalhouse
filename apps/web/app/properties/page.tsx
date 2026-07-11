@@ -26,6 +26,7 @@ function ExploreContent() {
   const [isLoading, setIsLoading] = useState(true);
   
   // Filter states
+  const [lookingFor, setLookingFor] = useState(searchParams?.get("listingType") || "RENT");
   const [city, setCity] = useState(searchParams?.get("city") || "");
   const [propertyType, setPropertyType] = useState(searchParams?.get("propertyType") || "");
   const [minRent, setMinRent] = useState(searchParams?.get("minRent") || "");
@@ -33,6 +34,7 @@ function ExploreContent() {
   
   // Favorites state
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
     fetchProperties();
@@ -49,6 +51,7 @@ function ExploreContent() {
       if (searchParams?.get("propertyType")) query.append("propertyType", searchParams.get("propertyType")!);
       if (searchParams?.get("minRent")) query.append("minRent", searchParams.get("minRent")!);
       if (searchParams?.get("maxRent")) query.append("maxRent", searchParams.get("maxRent")!);
+      if (searchParams?.get("listingType")) query.append("listingType", searchParams.get("listingType")!);
 
       const res = await api.get(`/properties?${query.toString()}`);
       setProperties(res.data);
@@ -83,6 +86,7 @@ function ExploreContent() {
     if (propertyType) query.append("propertyType", propertyType);
     if (minRent) query.append("minRent", minRent);
     if (maxRent) query.append("maxRent", maxRent);
+    if (lookingFor) query.append("listingType", lookingFor);
     
     router.push(`/properties?${query.toString()}`);
   };
@@ -111,14 +115,28 @@ function ExploreContent() {
         }
         return newSet;
       });
+
+      setToastMessage(res.data.isSaved ? "Added property to saved properties" : "Removed property from saved properties");
+      setTimeout(() => setToastMessage(""), 3000);
     } catch (error) {
       console.error("Failed to toggle save", error);
+      alert("Failed to save property");
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#FAF3E0] font-sans pb-20">
+    <div className="min-h-screen bg-[#FAF3E0] font-sans pb-20 relative">
       <Navbar />
+
+      {/* Toast Message */}
+      {toastMessage && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] animate-in fade-in slide-in-from-bottom-4 duration-300 pointer-events-none">
+          <div className="bg-gray-900 text-white px-6 py-3 rounded-full shadow-xl font-medium text-sm flex items-center gap-2">
+            <Heart className="h-4 w-4 fill-red-500 text-red-500" />
+            {toastMessage}
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 mt-8 flex flex-col md:flex-row gap-8">
         
@@ -131,6 +149,34 @@ function ExploreContent() {
             </div>
 
             <form onSubmit={handleSearch} className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Looking For</label>
+                <div className="flex rounded-xl bg-gray-100 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setLookingFor("RENT")}
+                    className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all ${
+                      lookingFor === "RENT" 
+                        ? "bg-white text-[#0052FF] shadow-sm" 
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Rent
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLookingFor("BUY")}
+                    className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all ${
+                      lookingFor === "BUY" 
+                        ? "bg-white text-[#0052FF] shadow-sm" 
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Buy
+                  </button>
+                </div>
+              </div>
+
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">Location</label>
                 <div className="relative">
@@ -255,8 +301,13 @@ function ExploreContent() {
                     </div>
 
                     <button 
-                      onClick={(e) => toggleSave(e, property.id)}
-                      className="absolute top-4 right-4 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-sm hover:scale-110 transition-transform"
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleSave(e, property.id);
+                      }}
+                      className="absolute top-4 right-4 p-2 rounded-full bg-white/90 backdrop-blur-sm shadow-sm hover:scale-110 transition-transform z-10"
                     >
                       <Heart 
                         className={`h-5 w-5 transition-colors ${savedIds.has(property.id) ? 'fill-red-500 text-red-500' : 'text-gray-400 hover:text-red-500'}`} 
@@ -279,7 +330,9 @@ function ExploreContent() {
 
                     <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
                       <div className="flex flex-col">
-                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Monthly Rent</span>
+                        <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                          {property.listingType === "SELL" ? "Selling Price" : "Monthly Rent"}
+                        </span>
                         <div className="flex items-center text-lg font-black text-[#0F172A]">
                           <IndianRupee className="h-4 w-4" />
                           {property.rent.toLocaleString('en-IN')}

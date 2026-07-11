@@ -18,6 +18,7 @@ export const createProperty = async (req: AuthRequest, res: Response) => {
       rent,
       deposit,
       maintenance,
+      listingType,
       address,
       city,
       state,
@@ -39,6 +40,7 @@ export const createProperty = async (req: AuthRequest, res: Response) => {
         propertyType,
         bhkType,
         status: 'ACTIVE',
+        listingType: listingType || 'RENT',
         rent: rent ? parseFloat(rent) : 0,
         deposit: deposit ? parseFloat(deposit) : 0,
         maintenance: maintenance ? parseFloat(maintenance) : 0,
@@ -74,12 +76,13 @@ export const createProperty = async (req: AuthRequest, res: Response) => {
 // GET /api/properties
 export const getProperties = async (req: AuthRequest, res: Response) => {
   try {
-    const { city, propertyType, minRent, maxRent } = req.query;
+    const { city, propertyType, minRent, maxRent, listingType } = req.query;
 
     const filter: any = { status: 'ACTIVE' };
     
     if (city) filter.city = { contains: city as string };
     if (propertyType) filter.propertyType = propertyType as string;
+    if (listingType) filter.listingType = listingType as string;
     
     if (minRent || maxRent) {
       filter.rent = {};

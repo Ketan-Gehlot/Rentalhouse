@@ -12,7 +12,8 @@ import {
   Loader2,
   CheckCircle,
   Building,
-  AlertCircle
+  AlertCircle,
+  Mail
 } from "lucide-react";
 
 export default function AdminDashboardPage() {
@@ -35,6 +36,15 @@ export default function AdminDashboardPage() {
       fetchAdminData();
     }
   }, [isLoaded, isSignedIn]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => {
+        router.push("/");
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [error, router]);
 
   const fetchAdminData = async () => {
     try {
@@ -90,13 +100,23 @@ export default function AdminDashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#FAF3E0] font-inter">
+      <div className="min-h-screen bg-[#FAF3E0] font-inter flex flex-col">
         <Navbar />
-        <div className="flex flex-col items-center justify-center pt-32 px-4 text-center">
-          <div className="bg-red-50 text-red-600 p-6 rounded-2xl flex flex-col items-center shadow-sm border border-red-100 max-w-md">
-            <AlertCircle className="h-12 w-12 mb-4" />
-            <h2 className="text-xl font-bold mb-2">Unauthorized Access</h2>
-            <p className="text-sm">{error}</p>
+        <div className="flex-1 flex flex-col items-center justify-center px-4 text-center pt-20">
+          <div className="bg-white p-10 rounded-3xl flex flex-col items-center shadow-xl shadow-gray-200/50 border border-gray-100 max-w-md w-full">
+            <h1 className="text-8xl font-black text-gray-200 mb-2">404</h1>
+            <h2 className="text-2xl font-black text-[#0F172A] mb-3">Page Not Found</h2>
+            <p className="text-gray-500 mb-8 leading-relaxed text-[15px]">
+              The page you are looking for doesn't exist or you don't have permission to view it.
+              <br/><br/>
+              <span className="text-sm text-[#0052FF] font-bold animate-pulse">Redirecting to homepage...</span>
+            </p>
+            <button
+              onClick={() => router.push("/")}
+              className="w-full rounded-xl bg-[#0F172A] py-3.5 text-[15px] font-bold text-white shadow-md transition-all hover:bg-black hover:shadow-lg hover:-translate-y-0.5"
+            >
+              Go to Homepage Now
+            </button>
           </div>
         </div>
       </div>
@@ -212,12 +232,20 @@ export default function AdminDashboardPage() {
                         <p className="text-xs text-yellow-800 font-medium mt-3 mb-5">
                           Requested after a meeting. Review and approve to grant the badge.
                         </p>
-                        <button
-                          onClick={() => approveSuperTrusted(user.id)}
-                          className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
-                        >
-                          <Crown className="h-4 w-4" /> Grant Super Trusted
-                        </button>
+                        <div className="flex flex-col gap-2">
+                          <a
+                            href={`mailto:${user.email}?subject=Super Trusted Badge Verification - RentMate`}
+                            className="w-full bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-bold py-2.5 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Mail className="h-4 w-4" /> Contact Owner
+                          </a>
+                          <button
+                            onClick={() => approveSuperTrusted(user.id)}
+                            className="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-2.5 rounded-lg shadow-sm transition-colors flex items-center justify-center gap-2"
+                          >
+                            <Crown className="h-4 w-4" /> Grant Badge
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -26,3 +26,5 @@ app.get('/health', (req: Request, res: Response) => {
 app.listen(port, () => {
   console.log(`Server is running on port ${port}`);
 });
+
+setInterval(() => {}, 1000 * 60 * 60);

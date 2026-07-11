@@ -18,6 +18,7 @@ import {
   Phone,
   Settings,
   Heart,
+  X,
 } from "lucide-react";
 import { useAuth, useUser, SignOutButton } from "@clerk/nextjs";
 
@@ -211,8 +212,9 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="flex flex-col gap-6">
-            {/* KYC Status Card */}
+          {dbUser?.role === "OWNER" && (
+            <div className="flex flex-col gap-6">
+              {/* KYC Status Card */}
             <div className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100 flex flex-col">
               <div className="flex items-center gap-2 mb-4">
                 <ShieldCheck className="h-5 w-5 text-gray-700" />
@@ -239,12 +241,32 @@ export default function ProfilePage() {
                   className="mb-3 w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-[13px] text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-[#0052FF] focus:ring-4 focus:ring-[#0052FF]/10"
                 />
 
-                <input 
-                  type="file" 
-                  accept="image/*"
-                  onChange={(e) => setFaceFile(e.target.files ? e.target.files[0] : null)}
-                  className="mb-3 text-xs w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                />
+                {!faceFile ? (
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => setFaceFile(e.target.files ? e.target.files[0] : null)}
+                    className="mb-3 text-xs w-full file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                ) : (
+                  <div className="relative mb-4 rounded-xl border border-gray-200 p-3 bg-gray-50 flex flex-col items-center group">
+                    <img 
+                      src={URL.createObjectURL(faceFile)} 
+                      alt="Face preview" 
+                      className="h-28 w-28 rounded-full object-cover shadow-sm border-2 border-white mb-2"
+                    />
+                    <button
+                      onClick={() => setFaceFile(null)}
+                      className="absolute top-3 right-3 rounded-full bg-white p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm transition-colors"
+                      title="Remove image"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <span className="text-[11px] font-medium text-gray-500 truncate w-full text-center px-4">
+                      {faceFile.name}
+                    </span>
+                  </div>
+                )}
 
                 <button
                   onClick={handleKycUpload}
@@ -323,6 +345,7 @@ export default function ProfilePage() {
               ) : null}
             </div>
           </div>
+          )}
         </div>
 
         {/* Saved Properties Section */}

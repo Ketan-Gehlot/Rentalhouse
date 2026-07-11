@@ -10,7 +10,7 @@ import { api } from "../lib/api";
 export default function Navbar() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const pathname = usePathname();
-  const [role, setRole] = useState<"TENANT" | "OWNER" | null>(null);
+  const [role, setRole] = useState<"TENANT" | "OWNER" | "ADMIN" | null>(null);
 
   useEffect(() => {
     if (isSignedIn) {
@@ -85,6 +85,18 @@ export default function Navbar() {
                   )}
                 </Link>
               </>
+            ) : role === 'ADMIN' ? (
+              <>
+                <Link
+                  href="/admin"
+                  className={`relative text-[14px] font-bold transition-colors ${pathname === '/admin' ? 'text-[#0052FF]' : 'text-gray-500 hover:text-[#0F172A]'}`}
+                >
+                  Admin Panel
+                  {pathname === '/admin' && (
+                    <span className="absolute -bottom-8 left-0 h-[3px] w-full rounded-t-full bg-[#0052FF]"></span>
+                  )}
+                </Link>
+              </>
             ) : (
               <>
                 <Link
@@ -113,10 +125,10 @@ export default function Navbar() {
             {isLoaded && isSignedIn ? (
               <>
                 <Link
-                  href="/profile"
+                  href={role === 'ADMIN' ? "/admin" : "/profile"}
                   className="text-[13px] sm:text-[14px] font-medium text-gray-600 transition-colors hover:text-[#0F172A] mr-2"
                 >
-                  Dashboard
+                  {role === 'ADMIN' ? "Admin Panel" : "Dashboard"}
                 </Link>
                 <UserButton afterSignOutUrl="/" />
               </>

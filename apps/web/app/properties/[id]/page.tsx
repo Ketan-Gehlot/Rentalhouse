@@ -254,13 +254,15 @@ export default function PropertyDetailsPage() {
                     {property.furnishing.replace("_", " ")}
                   </div>
                 </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Tenants</span>
-                  <div className="flex items-center font-bold text-[#0F172A]">
-                    <User className="mr-2 h-4 w-4 text-[#0052FF]" />
-                    {property.tenantPreference}
+                {property.listingType === "RENT" && (
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Tenants</span>
+                    <div className="flex items-center font-bold text-[#0F172A]">
+                      <User className="mr-2 h-4 w-4 text-[#0052FF]" />
+                      {property.tenantPreference}
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="flex flex-col">
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Available</span>
                   <div className="flex items-center font-bold text-[#0F172A]">
@@ -306,22 +308,24 @@ export default function PropertyDetailsPage() {
               <div className="flex items-end text-[#0052FF] font-black text-3xl mb-1">
                 <IndianRupee className="h-6 w-6 mr-1 pb-1" />
                 {property.rent.toLocaleString('en-IN')}
-                <span className="text-gray-400 text-sm font-medium ml-1 pb-1.5">/mo</span>
+                {property.listingType === "RENT" && <span className="text-gray-400 text-sm font-medium ml-1 pb-1.5">/mo</span>}
               </div>
               <p className="text-xs font-bold text-green-600 bg-green-50 inline-block px-2 py-1 rounded mb-6">
-                Rent Negotiable
+                {property.listingType === "SELL" ? "Price Negotiable" : "Rent Negotiable"}
               </p>
 
-              <div className="space-y-4 mb-6 pt-4 border-t border-gray-100">
-                <div className="flex justify-between items-center text-[15px]">
-                  <span className="text-gray-500 font-medium">Security Deposit</span>
-                  <span className="font-bold text-[#0F172A]">₹{property.deposit.toLocaleString('en-IN')}</span>
+              {property.listingType === "RENT" && (
+                <div className="space-y-4 mb-6 pt-4 border-t border-gray-100">
+                  <div className="flex justify-between items-center text-[15px]">
+                    <span className="text-gray-500 font-medium">Security Deposit</span>
+                    <span className="font-bold text-[#0F172A]">₹{property.deposit.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-[15px]">
+                    <span className="text-gray-500 font-medium">Maintenance</span>
+                    <span className="font-bold text-[#0F172A]">{property.maintenance > 0 ? `₹${property.maintenance}/mo` : "Included"}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-[15px]">
-                  <span className="text-gray-500 font-medium">Maintenance</span>
-                  <span className="font-bold text-[#0F172A]">{property.maintenance > 0 ? `₹${property.maintenance}/mo` : "Included"}</span>
-                </div>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <button 

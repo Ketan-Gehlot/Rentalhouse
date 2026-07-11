@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "../../lib/api";
@@ -46,9 +46,40 @@ export default function ListPropertyPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push("/sign-in");
+    } else if (isLoaded && isSignedIn) {
+      checkUserRole();
+    }
+  }, [isLoaded, isSignedIn]);
+
+  const checkUserRole = async () => {
+    try {
+      const token = await getToken();
+      if (!token) return;
+      
+      const res = await api.get("/users/profile", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (res.data.role !== "OWNER") {
+        setAccessDenied(true);
+      } else {
+        setIsLoadingProfile(false);
+      }
+    } catch (error) {
+      console.error("Failed to verify user role:", error);
+      setIsLoadingProfile(false);
+    }
+  };
 
   // Form State
   const [formData, setFormData] = useState({
+    listingType: "RENT",
     title: "",
     description: "",
     propertyType: "FLAT",
@@ -146,8 +177,12 @@ export default function ListPropertyPage() {
       }
     }
     if (currentStep === 3) {
-      if (!formData.rent || !formData.deposit) {
+      if (formData.listingType === "RENT" && (!formData.rent || !formData.deposit)) {
         setErrorMsg("Please fill all the required fields: Rent and Deposit are required.");
+        return;
+      }
+      if (formData.listingType === "SELL" && !formData.rent) {
+        setErrorMsg("Please fill the Selling Price field.");
         return;
       }
     }
@@ -186,10 +221,45 @@ export default function ListPropertyPage() {
     }
   };
 
-  // Ensure user is logged in
+  // Ensure user is logged in and profile is loaded
+  if (!isLoaded || (isSignedIn && isLoadingProfile && !accessDenied)) {
+    return (
+      <div className="flex min-h-screen flex-col bg-[#FAF3E0] font-sans">
+        <Navbar />
+        <div className="flex flex-1 items-center justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#0052FF] border-t-transparent"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (accessDenied) {
+    return (
+      <div className="flex min-h-screen flex-col bg-[#FAF3E0] font-sans">
+        <Navbar />
+        <div className="flex flex-1 items-center justify-center px-4">
+          <div className="max-w-md w-full bg-white rounded-3xl p-8 text-center shadow-xl shadow-gray-200/50 border border-gray-100">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-50 mb-6">
+              <X className="h-8 w-8 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-black text-[#0F172A] mb-3">Access Denied</h2>
+            <p className="text-gray-500 mb-8 leading-relaxed">
+              Only Property Owners can list properties. Tenants can only browse and save properties.
+            </p>
+            <button
+              onClick={() => router.push("/profile")}
+              className="w-full rounded-xl bg-[#0F172A] py-3.5 text-[15px] font-bold text-white shadow-md transition-all hover:bg-black hover:shadow-lg hover:-translate-y-0.5"
+            >
+              Okay, go to Profile
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (isLoaded && !isSignedIn) {
-    router.push("/sign-in");
-    return null;
+    return null; // Will redirect via useEffect
   }
 
   const renderStepContent = () => {
@@ -197,6 +267,34 @@ export default function ListPropertyPage() {
       case 1:
         return (
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div>
+              <label className="block text-sm font-semibold text-[#0F172A] mb-2">I want to:</label>
+              <div className="flex rounded-xl bg-gray-100 p-1 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, listingType: "RENT" })}
+                  className={`flex-1 rounded-lg py-3 text-[15px] font-bold transition-all ${
+                    formData.listingType === "RENT" 
+                      ? "bg-white text-[#0052FF] shadow-sm" 
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Rent out my property
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, listingType: "SELL" })}
+                  className={`flex-1 rounded-lg py-3 text-[15px] font-bold transition-all ${
+                    formData.listingType === "SELL" 
+                      ? "bg-white text-[#0052FF] shadow-sm" 
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  Sell my property
+                </button>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-semibold text-[#0F172A] mb-2">
                 Property Title <span className="text-red-500 ml-0.5">*</span>
@@ -307,7 +405,7 @@ export default function ListPropertyPage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-semibold text-[#0F172A] mb-2">
-                  Expected Rent (₹/mo) <span className="text-red-500 ml-0.5">*</span>
+                  {formData.listingType === "SELL" ? "Selling Price (₹)" : "Expected Rent (₹/mo)"} <span className="text-red-500 ml-0.5">*</span>
                 </label>
                 <div className="relative">
                   <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -316,27 +414,29 @@ export default function ListPropertyPage() {
                     name="rent"
                     value={formData.rent}
                     onChange={handleInputChange}
-                    placeholder="25000"
+                    placeholder={formData.listingType === "SELL" ? "5000000" : "25000"}
                     className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-3 text-[15px] focus:border-[#0052FF] focus:outline-none focus:ring-1 focus:ring-[#0052FF]"
                   />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm font-semibold text-[#0F172A] mb-2">
-                  Security Deposit (₹) <span className="text-red-500 ml-0.5">*</span>
-                </label>
-                <div className="relative">
-                  <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="number"
-                    name="deposit"
-                    value={formData.deposit}
-                    onChange={handleInputChange}
-                    placeholder="100000"
-                    className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-3 text-[15px] focus:border-[#0052FF] focus:outline-none focus:ring-1 focus:ring-[#0052FF]"
-                  />
+              {formData.listingType === "RENT" && (
+                <div>
+                  <label className="block text-sm font-semibold text-[#0F172A] mb-2">
+                    Security Deposit (₹) <span className="text-red-500 ml-0.5">*</span>
+                  </label>
+                  <div className="relative">
+                    <IndianRupee className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <input
+                      type="number"
+                      name="deposit"
+                      value={formData.deposit}
+                      onChange={handleInputChange}
+                      placeholder="100000"
+                      className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-3 text-[15px] focus:border-[#0052FF] focus:outline-none focus:ring-1 focus:ring-[#0052FF]"
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
