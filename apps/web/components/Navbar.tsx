@@ -13,16 +13,20 @@ export default function Navbar() {
   const [role, setRole] = useState<"TENANT" | "OWNER" | "ADMIN" | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
     if (isSignedIn) {
       getToken().then(token => {
-        if (token) {
+        if (token && isMounted) {
           api.get('/users/profile', { headers: { Authorization: `Bearer ${token}` }})
-             .then(res => setRole(res.data.role))
+             .then(res => {
+               if (isMounted) setRole(res.data.role);
+             })
              .catch(err => console.error("Failed to fetch role for navbar", err));
         }
       });
     }
-  }, [isSignedIn, getToken]);
+    return () => { isMounted = false; };
+  }, [isSignedIn]); // intentionally omitting getToken to prevent infinite re-render loop
 
   return (
     <nav className="sticky top-0 z-50 bg-[#FAF3E0]">
