@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
 import { useAuth, UserButton } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
@@ -10,7 +10,8 @@ import { api } from "../lib/api";
 export default function Navbar() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
   const pathname = usePathname();
-  const [role, setRole] = useState<"TENANT" | "OWNER" | "ADMIN" | null>(null);
+  const router = useRouter();
+  const [role, setRole] = useState<"TENANT" | "OWNER" | "ADMIN" | "USER" | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -19,7 +20,14 @@ export default function Navbar() {
         if (token && isMounted) {
           api.get('/users/profile', { headers: { Authorization: `Bearer ${token}` }})
              .then(res => {
-               if (isMounted) setRole(res.data.role);
+               if (isMounted) {
+                 const fetchedRole = res.data.role;
+                 setRole(fetchedRole);
+                 // Redirect un-onboarded users to onboarding
+                 if (fetchedRole === 'USER' && pathname !== '/onboarding') {
+                   router.push('/onboarding');
+                 }
+               }
              })
              .catch(err => console.error("Failed to fetch role for navbar", err));
         }

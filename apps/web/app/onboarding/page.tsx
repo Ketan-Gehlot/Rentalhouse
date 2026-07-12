@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@clerk/nextjs";
 import { api } from "../../lib/api";
@@ -8,9 +8,43 @@ import { Home as HomeIcon, Building2, Check, ArrowRight } from "lucide-react";
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { getToken, isLoaded } = useAuth();
+  const { getToken, isLoaded, isSignedIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedRole, setSelectedRole] = useState<"TENANT" | "OWNER" | null>(null);
+  const [isCheckingRole, setIsCheckingRole] = useState(true);
+
+  // Check if user already has a role — if so, skip onboarding
+  useEffect(() => {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
+      router.push("/sign-in");
+      return;
+    }
+
+    const checkExistingRole = async () => {
+      try {
+        const token = await getToken();
+        if (!token) {
+          setIsCheckingRole(false);
+          return;
+        }
+        const res = await api.get("/users/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const userRole = res.data?.role;
+        // If user already has a role (TENANT, OWNER, ADMIN), skip onboarding
+        if (userRole && userRole !== "USER") {
+          router.push("/");
+          return;
+        }
+      } catch {
+        // User doesn't exist yet in DB — that's fine, show onboarding
+      }
+      setIsCheckingRole(false);
+    };
+
+    checkExistingRole();
+  }, [isLoaded, isSignedIn]);
 
   const handleRoleSelection = async (role: "TENANT" | "OWNER") => {
     if (isSubmitting) return;
@@ -36,7 +70,7 @@ export default function OnboardingPage() {
     }
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || isCheckingRole) {
     return (
       <div className="flex h-screen items-center justify-center bg-[#0F172A]">
         <div className="h-8 w-8 animate-spin rounded-full border-4 border-[#3B82F6] border-t-transparent"></div>

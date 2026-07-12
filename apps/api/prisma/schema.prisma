@@ -8,7 +8,7 @@ datasource db {
 }
 
 // Enums are not natively supported in SQLite, so they have been converted to Strings
-// Roles: TENANT, OWNER, ADMIN
+// Roles: USER, TENANT, OWNER, ADMIN
 // VerificationStatus: PENDING, APPROVED, REJECTED
 // PropertyType: FLAT, APARTMENT, ROOM, PG, HOSTEL, SHARED_ROOM, VILLA, INDEPENDENT_HOUSE, COMMERCIAL
 // PropertyStatus: DRAFT, ACTIVE, PAUSED, RENTED
@@ -20,7 +20,7 @@ model User {
   email           String   @unique
   phone           String?  @unique
   password        String
-  role            String   @default("TENANT")
+  role            String   @default("USER")
   isEmailVerified    Boolean  @default(false)
   isPhoneVerified    Boolean  @default(false)
   isSuperTrusted     Boolean  @default(false)
