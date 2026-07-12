@@ -63,6 +63,10 @@ export const clerkWebhook = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'No email found in webhook' });
     }
 
+    // Secure Admin Promotion via Environment Variables
+    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(e => e.trim().toLowerCase());
+    const role = adminEmails.includes(email.toLowerCase()) ? 'ADMIN' : 'TENANT';
+
     try {
       await prisma.user.create({
         data: {
@@ -71,6 +75,7 @@ export const clerkWebhook = async (req: Request, res: Response) => {
           name: name || 'User',
           password: 'clerk-managed', // Dummy password since Clerk handles it
           phone,
+          role,
         },
       });
       console.log(`User created successfully with ID: ${id}`);
