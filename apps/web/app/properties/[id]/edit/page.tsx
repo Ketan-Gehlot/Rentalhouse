@@ -68,7 +68,7 @@ export default function EditPropertyPage() {
         deposit: p.deposit ? p.deposit.toString() : "",
         maintenance: p.maintenance ? p.maintenance.toString() : "",
         furnishing: p.furnishing || "SEMI_FURNISHED",
-        availableFrom: p.availableFrom ? new Date(p.availableFrom).toISOString().split("T")[0] : "",
+        availableFrom: p.availableFrom ? (new Date(p.availableFrom).toISOString().split("T")[0] ?? "") : "",
         tenantPreference: p.tenantPreference || "ANY",
       });
     } catch (error) {

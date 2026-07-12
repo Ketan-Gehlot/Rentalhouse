@@ -91,7 +91,7 @@ export default function ListPropertyPage() {
     deposit: "",
     maintenance: "0",
     furnishing: "SEMI_FURNISHED",
-    availableFrom: new Date().toISOString().split("T")[0],
+    availableFrom: new Date().toISOString().split("T")[0] ?? "",
     tenantPreference: "ANY",
   });
   

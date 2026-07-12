@@ -346,7 +346,7 @@ export default function PropertyDetailsPage() {
                     <input 
                       type="date" 
                       required
-                      min={new Date().toISOString().split('T')[0]}
+                      min={new Date().toISOString().split('T')[0] ?? ''}
                       value={visitDate}
                       onChange={(e) => setVisitDate(e.target.value)}
                       className="w-full p-2.5 rounded-lg border border-gray-200 text-sm outline-none focus:border-[#0052FF]"
