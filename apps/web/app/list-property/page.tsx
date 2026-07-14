@@ -198,10 +198,10 @@ export default function ListPropertyPage() {
     
     setIsSubmitting(true);
     try {
-      const token = await getToken();
-      
       // 1. Upload Images to Cloudinary
       const mediaUrls = await uploadImagesToCloudinary();
+      
+      const token = await getToken();
 
       // 2. Submit Data
       const payload = {
