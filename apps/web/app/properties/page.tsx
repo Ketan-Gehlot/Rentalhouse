@@ -51,7 +51,9 @@ function ExploreContent() {
       if (searchParams?.get("propertyType")) query.append("propertyType", searchParams.get("propertyType")!);
       if (searchParams?.get("minRent")) query.append("minRent", searchParams.get("minRent")!);
       if (searchParams?.get("maxRent")) query.append("maxRent", searchParams.get("maxRent")!);
-      if (searchParams?.get("listingType")) query.append("listingType", searchParams.get("listingType")!);
+      
+      const currentListingType = searchParams?.get("listingType") || "RENT";
+      query.append("listingType", currentListingType);
 
       const res = await api.get(`/properties?${query.toString()}`);
       setProperties(res.data);
@@ -154,7 +156,12 @@ function ExploreContent() {
                 <div className="flex rounded-xl bg-gray-100 p-1">
                   <button
                     type="button"
-                    onClick={() => setLookingFor("RENT")}
+                    onClick={() => {
+                      setLookingFor("RENT");
+                      const query = new URLSearchParams(searchParams?.toString() || "");
+                      query.set("listingType", "RENT");
+                      router.push(`/properties?${query.toString()}`);
+                    }}
                     className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all ${
                       lookingFor === "RENT" 
                         ? "bg-white text-[#0052FF] shadow-sm" 
@@ -165,7 +172,12 @@ function ExploreContent() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setLookingFor("BUY")}
+                    onClick={() => {
+                      setLookingFor("BUY");
+                      const query = new URLSearchParams(searchParams?.toString() || "");
+                      query.set("listingType", "BUY");
+                      router.push(`/properties?${query.toString()}`);
+                    }}
                     className={`flex-1 rounded-lg py-2 text-sm font-bold transition-all ${
                       lookingFor === "BUY" 
                         ? "bg-white text-[#0052FF] shadow-sm" 
