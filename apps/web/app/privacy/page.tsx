@@ -48,7 +48,7 @@ export default function PrivacyPolicyPage() {
             <ul className="list-disc pl-5 space-y-2">
               <li><strong>Identity Data:</strong> First name, last name, username or similar identifier.</li>
               <li><strong>Contact Data:</strong> Email address and telephone numbers.</li>
-              <li><strong>KYC Data (For Verification):</strong> Government-issued identifiers such as Aadhaar, PAN card, or passport details. <em>(Note: We strictly use this solely for verifying trust and safety between tenants and owners.)</em></li>
+              <li><strong>KYC Data (For Verification):</strong> Government-issued identifiers such as Aadhaar or PAN card details. <em>(Note: We strictly use this solely for verifying trust and safety between tenants and owners.)</em></li>
               <li><strong>Location Data:</strong> Your city, state, pincode, and exact property locations if you are an owner.</li>
               <li><strong>Technical Data:</strong> Internet protocol (IP) address, your login data, browser type and version, time zone setting and location.</li>
               <li><strong>Usage Data:</strong> Information about how you use our website and services (e.g., properties saved, visit requests made).</li>

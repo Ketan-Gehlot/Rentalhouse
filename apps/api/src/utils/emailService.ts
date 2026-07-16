@@ -48,6 +48,47 @@ export const sendAdminMeetingRequestEmail = async (userName: string, userEmail: 
   }
 };
 
+export const sendWelcomeEmail = async (userName: string, userEmail: string) => {
+  const mailOptions = {
+    from: `"RentMate Team" <${process.env.EMAIL_USER}>`,
+    to: userEmail,
+    subject: 'Welcome to RentMate! 🎉',
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+        <div style="background-color: #0F172A; padding: 24px; text-align: center;">
+          <h2 style="color: #ffffff; margin: 0;">Welcome to RentMate!</h2>
+        </div>
+        <div style="padding: 32px;">
+          <p style="font-size: 16px;">Hello ${userName},</p>
+          <p style="font-size: 16px;">We are thrilled to have you join RentMate India! Your account has been successfully created.</p>
+          
+          <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin: 0 0 8px 0;"><strong>What's next?</strong></p>
+            <ul style="margin: 0; padding-left: 20px;">
+              <li>Explore premium verified properties</li>
+              <li>List your own property securely</li>
+              <li>Connect directly with owners and tenants</li>
+            </ul>
+          </div>
+
+          <p style="font-size: 16px;">If you have any questions, feel free to reply to this email.</p>
+          <br/>
+          <p style="font-size: 14px; color: #6b7280;">Best regards,<br/>The RentMate Team</p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Welcome email sent: %s', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    return false;
+  }
+};
+
 export const sendUserApprovalEmail = async (userName: string, userEmail: string) => {
   const mailOptions = {
     from: `"RentMate Admin" <${process.env.EMAIL_USER}>`,

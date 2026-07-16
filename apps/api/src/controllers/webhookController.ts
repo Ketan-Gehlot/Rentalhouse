@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Webhook } from 'svix';
 import { PrismaClient } from '@prisma/client';
+import { sendWelcomeEmail } from '../utils/emailService';
 
 const prisma = new PrismaClient();
 
@@ -79,6 +80,10 @@ export const clerkWebhook = async (req: Request, res: Response) => {
         },
       });
       console.log(`User created successfully with ID: ${id}`);
+      
+      // Send welcome email
+      await sendWelcomeEmail(name || 'User', email);
+      
     } catch (error) {
       console.error('Error saving user to database:', error);
       return res.status(500).json({ error: 'Database error' });
