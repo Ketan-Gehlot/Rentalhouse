@@ -30,12 +30,31 @@ export default function Home() {
   const router = useRouter();
   const [searchCity, setSearchCity] = useState("");
   const [role, setRole] = useState<string | null>(null);
+  const [featuredProperties, setFeaturedProperties] = useState<any[]>([]);
+  const [isLoadingFeatured, setIsLoadingFeatured] = useState(true);
 
   useEffect(() => {
     if (isLoaded && userId) {
       fetchRole();
     }
+    fetchFeaturedProperties();
   }, [isLoaded, userId]);
+
+  const fetchFeaturedProperties = async () => {
+    try {
+      setIsLoadingFeatured(true);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+      const res = await fetch(`${apiUrl}/properties`);
+      if (res.ok) {
+        const data = await res.json();
+        setFeaturedProperties(data.slice(0, 9));
+      }
+    } catch (e) {
+      console.error("Failed to fetch featured properties", e);
+    } finally {
+      setIsLoadingFeatured(false);
+    }
+  };
 
   const fetchRole = async () => {
     try {
@@ -303,175 +322,78 @@ export default function Home() {
 
           {/* Property Cards Grid */}
           <div className="grid gap-8 md:grid-cols-3 lg:gap-12">
-            {/* Property Card 1 */}
-            <div className="group overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <div className="relative">
-                <Image
-                  src="/property-1.png"
-                  alt="Lodha Bellissimo Highrise"
-                  width={400}
-                  height={280}
-                  className="h-72 w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                {/* Top Badges */}
-                <div className="absolute left-3 top-3 flex gap-1.5">
-                  <span className="rounded-md bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-[#0F172A] shadow-sm backdrop-blur-sm">
-                    ✨ Featured
-                  </span>
-                </div>
-                <button className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:shadow-md">
-                  <Heart className="h-3.5 w-3.5 text-gray-500" />
-                </button>
-                {/* Bottom Badges on Image */}
-                <div className="absolute bottom-3 left-3 flex gap-1.5">
-                  <span className="rounded bg-[#0F172A]/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                    3 BHK
-                  </span>
-                  <span className="rounded bg-[#0F172A]/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                    Furnished
-                  </span>
-                </div>
+            {isLoadingFeatured ? (
+              <div className="col-span-3 py-10 text-center text-gray-500">
+                Loading featured properties...
               </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[14px] font-semibold text-[#0F172A]">
-                    Lodha Bellissimo Highrise
-                  </h3>
-                  <div>
-                    <span className="text-[15px] font-bold text-[#0F172A]">₹85K</span>
-                    <span className="text-[11px] text-gray-400">/mo</span>
+            ) : featuredProperties.length === 0 ? (
+              <div className="col-span-3 py-10 text-center text-gray-500">
+                No properties available yet. Check back soon!
+              </div>
+            ) : (
+              featuredProperties.map((property) => (
+                <div key={property.id} className="group overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                  <div className="relative">
+                    <Image
+                      src={property.media?.[0]?.url || "/property-1.png"}
+                      alt={property.title}
+                      width={400}
+                      height={280}
+                      className="h-72 w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    {/* Top Badges */}
+                    <div className="absolute left-3 top-3 flex gap-1.5">
+                      <span className="rounded-md bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-[#0F172A] shadow-sm backdrop-blur-sm">
+                        ✨ Featured
+                      </span>
+                    </div>
+                    <button className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:shadow-md">
+                      <Heart className="h-3.5 w-3.5 text-gray-500" />
+                    </button>
+                    {/* Bottom Badges on Image */}
+                    <div className="absolute bottom-3 left-3 flex gap-1.5">
+                      {property.bhkType && (
+                        <span className="rounded bg-[#0F172A]/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                          {property.bhkType}
+                        </span>
+                      )}
+                      {property.furnishing && (
+                        <span className="rounded bg-[#0F172A]/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
+                          {property.furnishing.replace('_', ' ')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[14px] font-semibold text-[#0F172A] truncate pr-2">
+                        {property.title}
+                      </h3>
+                      <div>
+                        <span className="text-[15px] font-bold text-[#0F172A]">₹{property.rent?.toLocaleString('en-IN')}</span>
+                        <span className="text-[11px] text-gray-400">/mo</span>
+                      </div>
+                    </div>
+                    <div className="mt-1 flex items-center gap-1 text-gray-500">
+                      <MapPin className="h-3 w-3" />
+                      <span className="text-[11px] truncate">{property.city}, {property.state}</span>
+                    </div>
+                    <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-3">
+                      <div className="flex items-center gap-1 text-[11px] text-gray-500">
+                        <Maximize2 className="h-3 w-3" />
+                        <span>{property.propertyType?.replace('_', ' ')}</span>
+                      </div>
+                      <Link
+                        href={`/properties/${property.id}`}
+                        className="rounded-lg border border-[#3B82F6]/20 bg-blue-50/50 px-3 py-1 text-[11px] font-medium text-[#3B82F6] transition-colors hover:bg-blue-50"
+                      >
+                        View Details
+                      </Link>
+                    </div>
                   </div>
                 </div>
-                <div className="mt-1 flex items-center gap-1 text-gray-500">
-                  <MapPin className="h-3 w-3" />
-                  <span className="text-[11px]">Mahalaxmi, Mumbai</span>
-                </div>
-                <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-3">
-                  <div className="flex items-center gap-1 text-[11px] text-gray-500">
-                    <Maximize2 className="h-3 w-3" />
-                    <span>1,200 sqft</span>
-                  </div>
-                  <Link
-                    href="/properties/1"
-                    className="rounded-lg border border-[#3B82F6]/20 bg-blue-50/50 px-3 py-1 text-[11px] font-medium text-[#3B82F6] transition-colors hover:bg-blue-50"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Property Card 2 */}
-            <div className="group overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <div className="relative">
-                <Image
-                  src="/property-2.png"
-                  alt="Prestige Tech Park Villa"
-                  width={400}
-                  height={280}
-                  className="h-72 w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute left-3 top-3 flex gap-1.5">
-                  <span className="rounded-md bg-green-500/90 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm backdrop-blur-sm">
-                    Semi Furnished
-                  </span>
-                </div>
-                <button className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:shadow-md">
-                  <Heart className="h-3.5 w-3.5 text-gray-500" />
-                </button>
-                <div className="absolute bottom-3 left-3 flex gap-1.5">
-                  <span className="rounded bg-[#0F172A]/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                    2 BHK
-                  </span>
-                  <span className="rounded bg-green-600/80 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                    Semi-Furnished
-                  </span>
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[14px] font-semibold text-[#0F172A]">
-                    Prestige Tech Park Villa
-                  </h3>
-                  <div>
-                    <span className="text-[15px] font-bold text-[#0F172A]">₹45K</span>
-                    <span className="text-[11px] text-gray-400">/mo</span>
-                  </div>
-                </div>
-                <div className="mt-1 flex items-center gap-1 text-gray-500">
-                  <MapPin className="h-3 w-3" />
-                  <span className="text-[11px]">Bellandur, Bangalore</span>
-                </div>
-                <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-3">
-                  <div className="flex items-center gap-1 text-[11px] text-gray-500">
-                    <Maximize2 className="h-3 w-3" />
-                    <span>950 sqft</span>
-                  </div>
-                  <Link
-                    href="/properties/2"
-                    className="rounded-lg border border-[#3B82F6]/20 bg-blue-50/50 px-3 py-1 text-[11px] font-medium text-[#3B82F6] transition-colors hover:bg-blue-50"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Property Card 3 */}
-            <div className="group overflow-hidden rounded-2xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
-              <div className="relative">
-                <Image
-                  src="/property-3.png"
-                  alt="DLF Magnolias Suite"
-                  width={400}
-                  height={280}
-                  className="h-72 w-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute left-3 top-3 flex gap-1.5">
-                  <span className="rounded-md bg-white/90 px-2 py-0.5 text-[10px] font-semibold text-[#0F172A] shadow-sm backdrop-blur-sm">
-                    ✨ Premium
-                  </span>
-                </div>
-                <button className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur-sm transition-all hover:bg-white hover:shadow-md">
-                  <Heart className="h-3.5 w-3.5 text-gray-500" />
-                </button>
-                <div className="absolute bottom-3 left-3 flex gap-1.5">
-                  <span className="rounded bg-[#0F172A]/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                    4 BHK
-                  </span>
-                  <span className="rounded bg-[#0F172A]/70 px-2 py-0.5 text-[10px] font-medium text-white backdrop-blur-sm">
-                    Fully Furnished
-                  </span>
-                </div>
-              </div>
-              <div className="p-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-[14px] font-semibold text-[#0F172A]">
-                    DLF Magnolias Suite
-                  </h3>
-                  <div>
-                    <span className="text-[15px] font-bold text-[#0F172A]">₹1.2L</span>
-                    <span className="text-[11px] text-gray-400">/mo</span>
-                  </div>
-                </div>
-                <div className="mt-1 flex items-center gap-1 text-gray-500">
-                  <MapPin className="h-3 w-3" />
-                  <span className="text-[11px]">Golf Course Rd, Gurgaon</span>
-                </div>
-                <div className="mt-3 flex items-center justify-between border-t border-gray-50 pt-3">
-                  <div className="flex items-center gap-1 text-[11px] text-gray-500">
-                    <Maximize2 className="h-3 w-3" />
-                    <span>2,400 sqft</span>
-                  </div>
-                  <Link
-                    href="/properties/3"
-                    className="rounded-lg border border-[#3B82F6]/20 bg-blue-50/50 px-3 py-1 text-[11px] font-medium text-[#3B82F6] transition-colors hover:bg-blue-50"
-                  >
-                    View Details
-                  </Link>
-                </div>
-              </div>
-            </div>
+              ))
+            )}
           </div>
         </div>
       </section>
