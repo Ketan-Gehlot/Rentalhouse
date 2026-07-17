@@ -116,8 +116,7 @@ export default function PrivacyPolicyPage() {
             </p>
             <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-100">
               <p className="font-semibold text-[#0F172A]">Grievance Officer, RentMate India</p>
-              <p>Email: <a href="mailto:privacy@rentmate.in" className="text-[#0052FF] hover:underline">privacy@rentmate.in</a></p>
-              <p>Address: [Your Registered Company Address in India]</p>
+              <p>Email: <a href="mailto:ketangehlot09@gmail.com" className="text-[#0052FF] hover:underline">ketangehlot09@gmail.com</a></p>
               <p>Working Hours: 9:00 AM to 6:00 PM (Monday to Friday)</p>
             </div>
           </section>
