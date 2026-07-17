@@ -434,14 +434,6 @@ export default function Home() {
                 </li>
                 <li>
                   <Link
-                    href="/partners"
-                    className="text-[12px] text-gray-500 transition-colors hover:text-[#0F172A]"
-                  >
-                    Verified Partners
-                  </Link>
-                </li>
-                <li>
-                  <Link
                     href="/contact"
                     className="text-[12px] text-gray-500 transition-colors hover:text-[#0F172A]"
                   >
