@@ -5,6 +5,7 @@ import userRoutes from './routes/userRoutes';
 import propertyRoutes from './routes/propertyRoutes';
 import visitRoutes from './routes/visitRoutes';
 import adminRoutes from './routes/adminRoutes';
+import paymentRoutes from './routes/paymentRoutes';
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/properties', propertyRoutes);
 app.use('/api/visits', visitRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/payments', paymentRoutes);
 
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', message: 'RentMate API is running' });

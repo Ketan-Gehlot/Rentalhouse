@@ -73,6 +73,7 @@ model Property {
   tenantPreference String?
   furnishing       String?
   status           String         @default("DRAFT")
+  paymentStatus    String         @default("PENDING") // PENDING, PAID
   isVerified       Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt

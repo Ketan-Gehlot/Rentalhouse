@@ -84,6 +84,7 @@ export default function PrivacyPolicyPage() {
             <ul className="list-disc pl-5 space-y-2">
               <li><strong>Platform Users:</strong> If you are a tenant requesting a visit, your basic contact details are shared with the property owner. If you are an owner, your property details and basic contact information are visible to prospective tenants.</li>
               <li><strong>Service Providers:</strong> IT and system administration services (e.g., AWS for hosting, Cloudinary for image storage, Clerk for secure authentication).</li>
+              <li><strong>Payment Gateways:</strong> We use Razorpay to process payments (e.g., listing fees). We do not store your full credit card details or UPI PINs on our servers. Razorpay processes these transactions securely in compliance with RBI guidelines.</li>
               <li><strong>Legal Authorities:</strong> To whom we are legally required to disclose information under Indian law.</li>
             </ul>
           </section>

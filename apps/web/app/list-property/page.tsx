@@ -17,6 +17,17 @@ import {
   Image as ImageIcon,
   X,
 } from "lucide-react";
+import { toast } from "react-hot-toast";
+
+const loadRazorpay = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 const STEPS = [
   { id: 1, name: "Basic Info", icon: Home },
@@ -210,14 +221,69 @@ export default function ListPropertyPage() {
         media: mediaUrls,
       };
 
-      await api.post("/properties", payload, {
+      const res = await api.post("/properties", payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const propertyId = res.data.id;
+
+      toast.success("Property created! Initializing payment...");
+
+      // 3. Create Razorpay Order
+      const orderRes = await api.post("/payments/create-listing-order", { propertyId }, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
-      router.push("/properties/manage");
+      const { orderId, amount, currency } = orderRes.data;
+
+      // 4. Load Razorpay SDK
+      const resRazor = await loadRazorpay();
+      if (!resRazor) {
+        toast.error("Razorpay SDK failed to load. Are you online?");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_YourKeyId", 
+        amount: amount.toString(),
+        currency: currency,
+        name: "RentMate India",
+        description: "Premium Property Listing Fee",
+        order_id: orderId,
+        handler: async function (response: any) {
+          try {
+            await api.post("/payments/verify", response, { 
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            toast.success("Payment Successful! Your property is now ACTIVE.");
+            router.push("/properties/manage");
+          } catch (verifyErr) {
+            console.error(verifyErr);
+            toast.error("Payment verification failed.");
+            setIsSubmitting(false);
+          }
+        },
+        prefill: {
+          name: "Property Owner",
+        },
+        theme: {
+          color: "#0052FF"
+        },
+        modal: {
+          ondismiss: function() {
+            toast.error("Payment cancelled. Property saved as Draft.");
+            setIsSubmitting(false);
+            router.push("/properties/manage");
+          }
+        }
+      };
+      
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.open();
+
     } catch (error) {
-      console.error("Error creating property:", error);
-      alert("Failed to list property. Please try again.");
+      console.error("Error creating property or payment:", error);
+      toast.error("Failed to list property. Please try again.");
       setIsSubmitting(false);
     }
   };

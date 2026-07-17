@@ -39,7 +39,7 @@ export const createProperty = async (req: AuthRequest, res: Response) => {
         description,
         propertyType,
         bhkType,
-        status: 'ACTIVE',
+        status: 'DRAFT',
         listingType: listingType || 'RENT',
         rent: rent ? parseFloat(rent) : 0,
         deposit: deposit ? parseFloat(deposit) : 0,
