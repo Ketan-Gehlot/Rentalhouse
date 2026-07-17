@@ -52,7 +52,7 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold text-[#0F172A]">Call Us</h3>
                     <p className="text-sm mt-1">Available Mon-Fri, 9am - 6pm</p>
-                    <p className="text-[#0F172A] font-medium">+91 99999 99999</p>
+                    <p className="text-[#0F172A] font-medium">+91 99298 96434</p>
                   </div>
                 </div>
 
@@ -63,7 +63,7 @@ export default function ContactPage() {
                   <div>
                     <h3 className="font-semibold text-[#0F172A]">Office</h3>
                     <p className="text-sm mt-1">RentMate India Headquarters</p>
-                    <p className="text-[#0F172A] font-medium mt-1">New Delhi, India</p>
+                    <p className="text-[#0F172A] font-medium mt-1">Mumbai, Maharashtra</p>
                   </div>
                 </div>
               </div>
