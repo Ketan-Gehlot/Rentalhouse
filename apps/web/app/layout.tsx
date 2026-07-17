@@ -14,6 +14,8 @@ export const metadata: Metadata = {
     "Discover premium living spaces with direct owners, zero brokerage, and 100% verified listings. Your next home is just a search away.",
 };
 
+import { Toaster } from 'react-hot-toast';
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -26,6 +28,7 @@ export default function RootLayout({
           className={`${inter.variable} font-sans antialiased`}
         >
           {children}
+          <Toaster position="bottom-right" />
         </body>
       </html>
     </ClerkProvider>

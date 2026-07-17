@@ -268,3 +268,47 @@ export const toggleSaveProperty = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// POST /api/properties/:id/contact
+import { sendOwnerContactEmail } from '../utils/emailService';
+
+export const contactOwner = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+    
+    const { id: propertyId } = req.params;
+
+    // Fetch the buyer's details
+    const buyer = await prisma.user.findUnique({ where: { id: userId } });
+    if (!buyer) return res.status(404).json({ error: 'Buyer not found' });
+
+    // Fetch the property and the owner's details
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId },
+      include: { owner: true }
+    });
+
+    if (!property) return res.status(404).json({ error: 'Property not found' });
+    if (!property.owner) return res.status(404).json({ error: 'Owner not found' });
+
+    // Send the email
+    const emailSent = await sendOwnerContactEmail(
+      property.owner.email,
+      property.owner.name,
+      property.title,
+      buyer.name,
+      buyer.email,
+      buyer.phone
+    );
+
+    if (emailSent) {
+      res.json({ message: 'Contact request sent successfully!' });
+    } else {
+      res.status(500).json({ error: 'Failed to send contact email' });
+    }
+  } catch (error) {
+    console.error('Error in contactOwner:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

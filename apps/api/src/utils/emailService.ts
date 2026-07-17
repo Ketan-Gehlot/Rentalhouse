@@ -124,3 +124,49 @@ export const sendUserApprovalEmail = async (userName: string, userEmail: string)
     return false;
   }
 };
+
+export const sendOwnerContactEmail = async (
+  ownerEmail: string,
+  ownerName: string,
+  propertyTitle: string,
+  buyerName: string,
+  buyerEmail: string,
+  buyerPhone: string | null
+) => {
+  const mailOptions = {
+    from: `"RentMate System" <${process.env.EMAIL_USER}>`,
+    to: ownerEmail,
+    subject: `New Lead for Your Property: ${propertyTitle}`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;">
+        <div style="background-color: #0F172A; padding: 24px; text-align: center;">
+          <h2 style="color: #fff; margin: 0;">🏡 Someone is interested in your property!</h2>
+        </div>
+        <div style="padding: 32px;">
+          <p style="font-size: 16px;">Hi ${ownerName},</p>
+          <p style="font-size: 16px;">Great news! A user on RentMate has requested to contact you regarding your listing: <strong>${propertyTitle}</strong>.</p>
+          
+          <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 24px 0;">
+            <p style="margin: 0 0 8px 0; color: #6b7280; font-size: 14px; text-transform: uppercase; font-weight: bold;">User Details</p>
+            <p style="margin: 0 0 8px 0;"><strong>Name:</strong> ${buyerName}</p>
+            <p style="margin: 0 0 8px 0;"><strong>Email:</strong> ${buyerEmail}</p>
+            ${buyerPhone ? `<p style="margin: 0;"><strong>Phone:</strong> ${buyerPhone}</p>` : ''}
+          </div>
+
+          <p style="font-size: 16px;">You can reach out to them directly using the contact information provided above to discuss the details.</p>
+          
+          <p style="font-size: 14px; color: #6b7280; margin-top: 32px;">Thank you for listing with RentMate!</p>
+        </div>
+      </div>
+    `,
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Owner contact email sent: %s', info.messageId);
+    return true;
+  } catch (error) {
+    console.error('Error sending owner contact email:', error);
+    return false;
+  }
+};

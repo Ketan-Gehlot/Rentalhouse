@@ -7,6 +7,7 @@ import {
   getPropertyById,
   updateProperty,
   toggleSaveProperty,
+  contactOwner,
 } from '../controllers/propertyController';
 
 const router = Router();
@@ -22,5 +23,6 @@ router.post('/', createProperty);
 router.get('/user/my-listings', getMyListings);
 router.put('/:id', updateProperty);
 router.post('/:id/save', toggleSaveProperty);
+router.post('/:id/contact', contactOwner);
 
 export default router;

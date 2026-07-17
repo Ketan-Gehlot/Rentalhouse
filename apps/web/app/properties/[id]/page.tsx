@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@clerk/nextjs";
+import { toast } from "react-hot-toast";
 
 interface PropertyDetails {
   id: string;
@@ -57,6 +58,7 @@ export default function PropertyDetailsPage() {
   const [visitDate, setVisitDate] = useState("");
   const [visitTime, setVisitTime] = useState("");
   const [isSubmittingVisit, setIsSubmittingVisit] = useState(false);
+  const [isContacting, setIsContacting] = useState(false);
   const [existingVisitStatus, setExistingVisitStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -88,7 +90,7 @@ export default function PropertyDetailsPage() {
   const handleScheduleVisit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isSignedIn) {
-      alert("Please sign in to schedule a visit");
+      toast.error("Please sign in to schedule a visit");
       return;
     }
     
@@ -102,12 +104,12 @@ export default function PropertyDetailsPage() {
       }, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert("Visit requested successfully! The owner will be notified.");
+      toast.success("Visit requested successfully! The owner will be notified.");
       setExistingVisitStatus("PENDING");
       setShowVisitForm(false);
     } catch (error: any) {
       console.error("Failed to request visit", error);
-      alert(error.response?.data?.error || "Failed to schedule visit");
+      toast.error(error.response?.data?.error || "Failed to schedule visit");
     } finally {
       setIsSubmittingVisit(false);
     }
@@ -127,15 +129,41 @@ export default function PropertyDetailsPage() {
   const handleSaveProperty = async () => {
     try {
       const token = await getToken();
-      if (!token) return alert("Please sign in to save properties");
+      if (!token) return toast.error("Please sign in to save properties");
       
       const res = await api.post(`/properties/${id}/save`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert(res.data.message);
+      
+      if (res.data.isSaved) {
+        toast.success("Property added to your saved collection! ❤️");
+      } else {
+        toast.success("Property removed from saved collection.");
+      }
     } catch (error) {
       console.error("Failed to save property:", error);
-      alert("Failed to save property");
+      toast.error("Failed to save property");
+    }
+  };
+
+  const handleContactOwner = async () => {
+    if (!isSignedIn) {
+      toast.error("Please sign in to contact the owner");
+      return;
+    }
+    
+    setIsContacting(true);
+    try {
+      const token = await getToken();
+      await api.post(`/properties/${id}/contact`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("Contact request sent! The owner will receive an email with your details.");
+    } catch (error: any) {
+      console.error("Failed to contact owner", error);
+      toast.error(error.response?.data?.error || "Failed to send contact request");
+    } finally {
+      setIsContacting(false);
     }
   };
 
@@ -329,10 +357,11 @@ export default function PropertyDetailsPage() {
 
               {/* Action Buttons */}
               <button 
-                onClick={() => alert(`Owner Contact Info: ${property.owner.name} (Phone/Email hidden for demo unless logged in)`)}
-                className="w-full rounded-xl bg-[#0F172A] py-3.5 text-[15px] font-bold text-white shadow-md transition-all hover:bg-black hover:shadow-lg hover:-translate-y-0.5 mb-3"
+                onClick={handleContactOwner}
+                disabled={isContacting}
+                className="w-full rounded-xl bg-[#0F172A] py-3.5 text-[15px] font-bold text-white shadow-md transition-all hover:bg-black hover:shadow-lg hover:-translate-y-0.5 mb-3 disabled:opacity-50"
               >
-                Contact Owner
+                {isContacting ? "Sending Request..." : "Contact Owner"}
               </button>
 
               {userId === property.owner.name /* Quick check if owner, wait, property.ownerId isn't returned in details sometimes, let's just check existingVisitStatus */ ? null : existingVisitStatus ? (
