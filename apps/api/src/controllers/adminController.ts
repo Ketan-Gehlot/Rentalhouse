@@ -66,3 +66,28 @@ export const getAllProperties = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 };
+
+// DELETE /api/admin/properties/:id
+export const deleteProperty = async (req: AuthRequest, res: Response) => {
+  try {
+    const propertyId = req.params.id as string;
+    
+    // Check if it exists
+    const property = await prisma.property.findUnique({
+      where: { id: propertyId }
+    });
+
+    if (!property) {
+      return res.status(404).json({ error: 'Property not found' });
+    }
+
+    await prisma.property.delete({
+      where: { id: propertyId }
+    });
+
+    res.json({ message: 'Property deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting property:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};

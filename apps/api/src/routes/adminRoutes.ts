@@ -3,7 +3,8 @@ import { authenticateJWT, isAdmin } from '../middlewares/authMiddleware';
 import {
   getAllUsers,
   approveSuperTrusted,
-  getAllProperties
+  getAllProperties,
+  deleteProperty
 } from '../controllers/adminController';
 
 const router = Router();
@@ -15,5 +16,6 @@ router.use(isAdmin);
 router.get('/users', getAllUsers);
 router.patch('/users/:id/super-trusted', approveSuperTrusted);
 router.get('/properties', getAllProperties);
+router.delete('/properties/:id', deleteProperty);
 
 export default router;

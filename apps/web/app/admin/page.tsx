@@ -13,8 +13,10 @@ import {
   CheckCircle,
   Building,
   AlertCircle,
-  Mail
+  Mail,
+  Trash2
 } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 export default function AdminDashboardPage() {
   const { getToken, isLoaded, isSignedIn } = useAuth();
@@ -83,10 +85,30 @@ export default function AdminDashboardPage() {
           ? { ...u, isSuperTrusted: true, superTrustedStatus: 'APPROVED' } 
           : u
       ));
-      alert("Super Trusted status granted!");
+      toast.success("Super Trusted status granted!");
     } catch (error) {
       console.error("Failed to approve super trusted:", error);
-      alert("Failed to grant status.");
+      toast.error("Failed to grant status.");
+    }
+  };
+
+  const handleDeleteProperty = async (propertyId: string) => {
+    if (!window.confirm("Are you sure you want to completely delete this property? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const token = await getToken();
+      await api.delete(`/admin/properties/${propertyId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Remove from local state
+      setProperties(prev => prev.filter(p => p.id !== propertyId));
+      toast.success("Property deleted successfully!");
+    } catch (error) {
+      console.error("Failed to delete property:", error);
+      toast.error("Failed to delete property.");
     }
   };
 
@@ -262,7 +284,8 @@ export default function AdminDashboardPage() {
                       <th className="px-6 py-3">City</th>
                       <th className="px-6 py-3">Rent</th>
                       <th className="px-6 py-3">Owner</th>
-                      <th className="px-6 py-3 rounded-tr-lg">Status</th>
+                      <th className="px-6 py-3">Status</th>
+                      <th className="px-6 py-3 rounded-tr-lg">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -276,6 +299,15 @@ export default function AdminDashboardPage() {
                           <span className="px-2 py-1 rounded text-xs font-bold bg-green-100 text-green-700">
                             {prop.status}
                           </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => handleDeleteProperty(prop.id)}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                            title="Delete Property"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </td>
                       </tr>
                     ))}
