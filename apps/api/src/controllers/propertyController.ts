@@ -277,7 +277,7 @@ export const contactOwner = async (req: AuthRequest, res: Response) => {
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
     
-    const { id: propertyId } = req.params;
+    const propertyId = req.params.id as string;
 
     // Fetch the buyer's details
     const buyer = await prisma.user.findUnique({ where: { id: userId } });
