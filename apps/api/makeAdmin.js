@@ -1,48 +1,31 @@
-require('dotenv').config();
 const { PrismaClient } = require('@prisma/client');
-const { users } = require('@clerk/clerk-sdk-node');
-
 const prisma = new PrismaClient();
 
 async function main() {
-  const targetEmail = 'gehlotchetan86@gmail.com';
-  console.log(`Looking up exact email: ${targetEmail} in Clerk Auth...`);
+  const clerkUserId = process.argv[2];
 
-  try {
-    // 1. Ask Clerk Auth to find the user by their real email
-    const userList = await users.getUserList({ emailAddress: [targetEmail] });
-    
-    if (!userList || userList.length === 0) {
-      console.log(`Error: User with email ${targetEmail} not found in Clerk!`);
-      console.log(`Please make sure you have signed up and logged in with this exact email.`);
-      return;
-    }
-
-    const clerkUserId = userList[0].id;
-    console.log(`Found Clerk User ID: ${clerkUserId}`);
-
-    // 2. Now that we have the real ID, find them in your local PostgreSQL database
-    const localUser = await prisma.user.findUnique({ where: { id: clerkUserId } });
-
-    if (!localUser) {
-       console.log(`Error: User was found in Clerk, but not in your local database yet.`);
-       console.log(`Please log in with this email and click on your Profile page to sync the account, then run this script again.`);
-       return;
-    }
-
-    // 3. Promote ONLY this exact user to ADMIN
-    await prisma.user.update({
-      where: { id: clerkUserId },
-      data: { role: 'ADMIN' }
-    });
-
-    console.log(`Success! ONLY ${targetEmail} has been promoted to ADMIN!`);
-
-  } catch (error) {
-    console.error("Error occurred:", error.message || error);
-  } finally {
-    await prisma.$disconnect();
+  if (!clerkUserId) {
+    console.log("Error: You must provide your Clerk User ID!");
+    console.log("Usage: node makeAdmin.js <your_clerk_user_id>");
+    return;
   }
+
+  const localUser = await prisma.user.findUnique({ where: { id: clerkUserId } });
+
+  if (!localUser) {
+     console.log(`Error: User with ID ${clerkUserId} not found in your local database.`);
+     console.log(`Please make sure you have logged into the website at least once!`);
+     return;
+  }
+
+  await prisma.user.update({
+    where: { id: clerkUserId },
+    data: { role: 'ADMIN' }
+  });
+
+  console.log(`Success! The user has been securely promoted to ADMIN!`);
 }
 
-main();
+main()
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());
