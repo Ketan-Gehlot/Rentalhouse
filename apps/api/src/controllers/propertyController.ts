@@ -97,6 +97,9 @@ export const getProperties = async (req: AuthRequest, res: Response) => {
         amenities: true,
         owner: {
           select: { name: true, isSuperTrusted: true, verification: { select: { status: true } } }
+        },
+        savedBy: {
+          select: { userId: true }
         }
       },
       orderBy: { createdAt: 'desc' }

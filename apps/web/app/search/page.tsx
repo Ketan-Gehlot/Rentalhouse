@@ -6,11 +6,12 @@ import { api } from "../../lib/api";
 import Link from "next/link";
 import { MapPin, BedDouble, HomeIcon, Eye, Loader2, IndianRupee, Heart } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
+import { toast } from "react-hot-toast";
 
 export default function SearchPage() {
   const [properties, setProperties] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { getToken } = useAuth();
+  const { getToken, userId } = useAuth();
 
   useEffect(() => {
     fetchProperties();
@@ -30,15 +31,31 @@ export default function SearchPage() {
   const handleSaveProperty = async (propertyId: string) => {
     try {
       const token = await getToken();
-      if (!token) return alert("Please sign in to save properties");
+      if (!token || !userId) return toast.error("Please sign in to save properties");
       
+      // Optimistic update
+      setProperties(prev => prev.map(p => {
+        if (p.id === propertyId) {
+          const isCurrentlySaved = p.savedBy?.some((s: any) => s.userId === userId);
+          return {
+            ...p,
+            savedBy: isCurrentlySaved 
+              ? p.savedBy.filter((s: any) => s.userId !== userId) 
+              : [...(p.savedBy || []), { userId }]
+          };
+        }
+        return p;
+      }));
+
       const res = await api.post(`/properties/${propertyId}/save`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert(res.data.message);
+      toast.success(res.data.message);
     } catch (error) {
       console.error("Failed to save property:", error);
-      alert("Failed to save property");
+      toast.error("Failed to save property");
+      // Revert on failure by re-fetching
+      fetchProperties();
     }
   };
 
@@ -107,19 +124,31 @@ export default function SearchPage() {
                     </div>
                   </div>
 
-                  <div className="mt-auto flex items-center justify-between pt-4 border-t border-gray-100">
-                    <div className="flex items-center text-[#0052FF] font-black text-lg">
-                      <IndianRupee className="h-4 w-4 mr-0.5" />
-                      {property.rent.toLocaleString('en-IN')}
-                      <span className="text-gray-400 text-[12px] font-medium ml-1">/mo</span>
+                  <div className="mt-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-gray-100">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
+                      <span className="font-bold text-[#0F172A]">Listed by:</span>
+                      <span className="line-clamp-1 max-w-[100px]">{property.owner.name}</span>
+                      {property.owner.isSuperTrusted && (
+                        <span className="ml-1 text-[10px] font-bold text-blue-600 bg-blue-100 px-2 py-0.5 rounded-full">
+                          Super Trusted
+                        </span>
+                      )}
                     </div>
+                    <div className="flex items-center gap-3">
+                      <div className="text-xl font-black text-[#0052FF]">
+                        ₹{property.rent.toLocaleString('en-IN')}<span className="text-sm font-medium text-gray-500">/mo</span>
+                      </div>
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={() => handleSaveProperty(property.id)}
-                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                        className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors ${
+                          property.savedBy?.some((s: any) => s.userId === userId)
+                            ? "bg-red-50 text-red-500"
+                            : "bg-gray-50 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                        }`}
                         title="Save Property"
                       >
-                        <Heart className="h-4 w-4" />
+                        <Heart className={`h-4 w-4 ${property.savedBy?.some((s: any) => s.userId === userId) ? "fill-red-500" : ""}`} />
                       </button>
                       <Link 
                         href={`/properties/${property.id}`}
