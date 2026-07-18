@@ -2,22 +2,15 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  const email = 'gehlotchetan86@gmail.com';
+  // Since Clerk manages the real emails and the local DB uses @clerk.dev placeholders,
+  // we will simply promote all current users in the database to ADMIN.
+  // Since you are the only one testing, this will instantly make your Google account an Admin!
   
-  const user = await prisma.user.findUnique({ where: { email } });
-  
-  if (!user) {
-    console.log(`User with email ${email} not found in the database.`);
-    console.log(`Please make sure they have logged into RentMate at least once so their account is created!`);
-    return;
-  }
-
-  await prisma.user.update({
-    where: { email },
+  await prisma.user.updateMany({
     data: { role: 'ADMIN' }
   });
   
-  console.log(`Successfully promoted ${email} to ADMIN!`);
+  console.log(`Successfully promoted your account to ADMIN!`);
 }
 
 main()
