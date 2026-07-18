@@ -3,21 +3,29 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Search } from "lucide-react";
-import { useAuth, UserButton } from "@clerk/nextjs";
+import { useAuth, useUser, UserButton } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
 export default function Navbar() {
   const { isSignedIn, isLoaded, getToken } = useAuth();
+  const { user } = useUser();
   const pathname = usePathname();
   const router = useRouter();
   const [role, setRole] = useState<"TENANT" | "OWNER" | "ADMIN" | "USER" | null>(null);
 
   useEffect(() => {
     let isMounted = true;
-    if (isSignedIn) {
+    if (isSignedIn && user) {
       getToken().then(token => {
         if (token && isMounted) {
+          // Sync real email and name from Clerk to local database
+          api.post('/users/sync', { 
+            name: user.fullName || user.username || "RentMate User", 
+            email: user.primaryEmailAddress?.emailAddress 
+          }, { headers: { Authorization: `Bearer ${token}` }})
+          .catch(err => console.error("Failed to sync user data", err));
+
           api.get('/users/profile', { headers: { Authorization: `Bearer ${token}` }})
              .then(res => {
                if (isMounted) {
@@ -34,7 +42,7 @@ export default function Navbar() {
       });
     }
     return () => { isMounted = false; };
-  }, [isSignedIn]); // intentionally omitting getToken to prevent infinite re-render loop
+  }, [isSignedIn, user]); // intentionally omitting getToken to prevent infinite re-render loop
 
   return (
     <nav className="sticky top-0 z-50 bg-[#FAF3E0]">

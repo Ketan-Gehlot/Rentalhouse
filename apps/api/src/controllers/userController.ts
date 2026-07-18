@@ -60,6 +60,38 @@ export const getProfile = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const syncUser = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.auth?.userId;
+    if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+    const { email, name } = req.body;
+    
+    // Default values if frontend doesn't send them
+    const safeEmail = email || `${userId}@clerk.dev`;
+    const safeName = name || 'RentMate User';
+
+    const user = await prisma.user.upsert({
+      where: { id: userId },
+      update: {
+        email: safeEmail,
+        name: safeName
+      },
+      create: {
+        id: userId,
+        email: safeEmail,
+        name: safeName,
+        password: 'clerk-managed'
+      }
+    });
+
+    res.json(user);
+  } catch (error) {
+    console.error('Error syncing user:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
 export const uploadKyc = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
