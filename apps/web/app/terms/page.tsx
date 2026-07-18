@@ -59,6 +59,7 @@ export default function TermsPage() {
               <li>We do not act as a real estate agent or broker.</li>
               <li>We are not a party to any rental agreements or transactions made between users.</li>
               <li>While we strive to verify users, we make no guarantees regarding the condition of properties, the character of tenants, or the financial outcomes of any agreements.</li>
+              <li className="text-red-600"><strong>Important Notice on Fraud:</strong> This platform serves exclusively as a digital bridge connecting property owners and prospective buyers/tenants. RentMate India is not responsible, nor legally liable, for any kind of financial fraud, misrepresentation, or misconduct committed by any owner, tenant, or buyer. Users are strongly advised to exercise caution and independently verify all parties before making any offline financial transactions or signing agreements.</li>
               <li>RentMate shall not be held liable for any direct, indirect, incidental, or consequential damages resulting from the use or inability to use our services.</li>
             </ul>
           </section>
