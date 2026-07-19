@@ -202,7 +202,7 @@ export default function PropertyDetailsPage() {
         </button>
 
         {/* Hero Image Gallery */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-2 md:gap-4 h-auto md:h-[500px]">
+        <div className="mb-8 flex flex-col md:grid md:grid-cols-4 gap-2 md:gap-4 h-auto md:h-[500px]">
           {property.media && property.media.length > 0 ? (
             <>
               {/* Main Image */}
@@ -219,12 +219,12 @@ export default function PropertyDetailsPage() {
               
               {/* Thumbnail Column */}
               {property.media.length > 1 && (
-                <div className="flex flex-row md:flex-col gap-2 md:gap-4 h-20 md:h-full overflow-x-auto md:overflow-y-hidden md:overflow-visible pb-2 md:pb-0 no-scrollbar">
+                <div className="flex flex-row md:flex-col gap-2 md:gap-4 w-full md:w-auto h-24 md:h-full overflow-x-auto md:overflow-y-hidden md:overflow-visible pb-2 md:pb-0 scrollbar-hide">
                   {property.media.slice(0, 5).map((img, index) => (
                     <button 
                       key={index}
                       onClick={() => setActiveImage(index)}
-                      className={`relative w-24 md:w-full flex-shrink-0 flex-1 min-h-[60px] md:min-h-[100px] md:max-h-[120px] rounded-xl overflow-hidden border-2 transition-all ${
+                      className={`relative w-[80px] h-[70px] sm:w-[100px] md:w-full flex-shrink-0 md:flex-1 min-h-[70px] md:min-h-[100px] md:max-h-[120px] rounded-xl overflow-hidden border-2 transition-all ${
                         activeImage === index ? "border-[#0052FF] opacity-100" : "border-transparent opacity-60 hover:opacity-100"
                       }`}
                     >

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { PrismaClient } from '@prisma/client';
 import { AuthRequest } from '../middlewares/authMiddleware';
+import { clerkClient } from '@clerk/clerk-sdk-node';
 
 const prisma = new PrismaClient();
 
@@ -13,6 +14,21 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
       },
       orderBy: { createdAt: 'desc' }
     });
+
+    // Resolve real emails for admin display
+    for (let i = 0; i < users.length; i++) {
+      if (users[i].email.endsWith('@clerk.dev')) {
+        try {
+          const clerkUser = await clerkClient.users.getUser(users[i].id);
+          const primaryEmail = clerkUser.emailAddresses.find(e => e.id === clerkUser.primaryEmailAddressId)?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress;
+          if (primaryEmail) {
+            users[i].email = primaryEmail;
+          }
+        } catch (e) {
+          console.error(`Failed to fetch email for ${users[i].id}`, e);
+        }
+      }
+    }
 
     res.json(users);
   } catch (error) {
