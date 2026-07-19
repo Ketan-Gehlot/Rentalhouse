@@ -202,11 +202,11 @@ export default function PropertyDetailsPage() {
         </button>
 
         {/* Hero Image Gallery */}
-        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4 h-[350px] md:h-[500px]">
+        <div className="mb-8 grid grid-cols-1 md:grid-cols-4 gap-2 md:gap-4 h-auto md:h-[500px]">
           {property.media && property.media.length > 0 ? (
             <>
               {/* Main Image */}
-              <div className={`${property.media.length > 1 ? 'md:col-span-3' : 'md:col-span-4'} h-full w-full rounded-2xl overflow-hidden shadow-sm relative group bg-gray-100`}>
+              <div className={`${property.media.length > 1 ? 'md:col-span-3' : 'md:col-span-4'} h-[300px] md:h-full w-full rounded-2xl overflow-hidden shadow-sm relative group bg-gray-100`}>
                 <img 
                   src={property.media[activeImage].url} 
                   alt={property.title} 
@@ -219,12 +219,12 @@ export default function PropertyDetailsPage() {
               
               {/* Thumbnail Column */}
               {property.media.length > 1 && (
-                <div className="hidden md:flex flex-col gap-4 h-full">
-                  {property.media.slice(0, 4).map((img, index) => (
+                <div className="flex flex-row md:flex-col gap-2 md:gap-4 h-20 md:h-full overflow-x-auto md:overflow-y-hidden md:overflow-visible pb-2 md:pb-0 no-scrollbar">
+                  {property.media.slice(0, 5).map((img, index) => (
                     <button 
                       key={index}
                       onClick={() => setActiveImage(index)}
-                      className={`relative w-full flex-1 min-h-[100px] max-h-[120px] rounded-xl overflow-hidden border-2 transition-all ${
+                      className={`relative w-24 md:w-full flex-shrink-0 flex-1 min-h-[60px] md:min-h-[100px] md:max-h-[120px] rounded-xl overflow-hidden border-2 transition-all ${
                         activeImage === index ? "border-[#0052FF] opacity-100" : "border-transparent opacity-60 hover:opacity-100"
                       }`}
                     >
@@ -235,7 +235,7 @@ export default function PropertyDetailsPage() {
               )}
             </>
           ) : (
-            <div className="md:col-span-4 h-full rounded-2xl bg-gray-200 flex items-center justify-center shadow-sm">
+            <div className="md:col-span-4 h-full min-h-[300px] rounded-2xl bg-gray-200 flex items-center justify-center shadow-sm">
               <span className="text-gray-400 font-medium">No Images Available</span>
             </div>
           )}

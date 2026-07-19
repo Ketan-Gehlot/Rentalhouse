@@ -274,6 +274,7 @@ export const toggleSaveProperty = async (req: AuthRequest, res: Response) => {
 
 // POST /api/properties/:id/contact
 import { sendOwnerContactEmail } from '../utils/emailService';
+import { clerkClient } from '@clerk/clerk-sdk-node';
 
 export const contactOwner = async (req: AuthRequest, res: Response) => {
   try {
@@ -295,9 +296,34 @@ export const contactOwner = async (req: AuthRequest, res: Response) => {
     if (!property) return res.status(404).json({ error: 'Property not found' });
     if (!property.owner) return res.status(404).json({ error: 'Owner not found' });
 
+    let ownerEmail = property.owner.email;
+    
+    // Attempt to resolve real email if it's a dummy email
+    if (ownerEmail.endsWith('@clerk.dev')) {
+      try {
+        const clerkUser = await clerkClient.users.getUser(property.owner.id);
+        const primaryEmail = clerkUser.emailAddresses.find(e => e.id === clerkUser.primaryEmailAddressId)?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress;
+        
+        if (primaryEmail) {
+          ownerEmail = primaryEmail;
+          // Optimistically update the database with the real email
+          await prisma.user.update({
+            where: { id: property.owner.id },
+            data: { email: primaryEmail }
+          });
+        } else {
+          return res.status(400).json({ error: 'Owner does not have a valid email address configured.' });
+        }
+      } catch (err) {
+        console.error('Failed to fetch from clerk API', err);
+        // Fallback gracefully instead of trying to email a dummy address
+        return res.status(400).json({ error: 'Owner email address could not be resolved.' });
+      }
+    }
+
     // Send the email
     const emailSent = await sendOwnerContactEmail(
-      property.owner.email,
+      ownerEmail,
       property.owner.name,
       property.title,
       buyer.name,

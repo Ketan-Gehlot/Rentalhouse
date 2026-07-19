@@ -71,16 +71,17 @@ export const syncUser = async (req: AuthRequest, res: Response) => {
     const safeEmail = email || `${userId}@clerk.dev`;
     const safeName = name || 'RentMate User';
 
+    const updateData: any = {};
+    if (email) updateData.email = email;
+    if (name) updateData.name = name;
+
     const user = await prisma.user.upsert({
       where: { id: userId },
-      update: {
-        email: safeEmail,
-        name: safeName
-      },
+      update: updateData,
       create: {
         id: userId,
-        email: safeEmail,
-        name: safeName,
+        email: email || `${userId}@clerk.dev`,
+        name: name || 'RentMate User',
         password: 'clerk-managed'
       }
     });
