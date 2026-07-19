@@ -218,7 +218,7 @@ export default function PropertyDetailsPage() {
               </div>
               
               {/* Thumbnail Column */}
-              {property.media.length > 1 && (
+              {property.media.length > 0 && (
                 <div className="flex flex-row md:flex-col gap-2 md:gap-4 w-full md:w-auto h-24 md:h-full overflow-x-auto md:overflow-y-hidden md:overflow-visible pb-2 md:pb-0 scrollbar-hide">
                   {property.media.slice(0, 5).map((img, index) => (
                     <button 
