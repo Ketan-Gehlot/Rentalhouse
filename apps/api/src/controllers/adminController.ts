@@ -17,15 +17,16 @@ export const getAllUsers = async (req: AuthRequest, res: Response) => {
 
     // Resolve real emails for admin display
     for (let i = 0; i < users.length; i++) {
-      if (users[i].email.endsWith('@clerk.dev')) {
+      const user = users[i];
+      if (user && user.email.endsWith('@clerk.dev')) {
         try {
-          const clerkUser = await clerkClient.users.getUser(users[i].id);
+          const clerkUser = await clerkClient.users.getUser(user.id);
           const primaryEmail = clerkUser.emailAddresses.find(e => e.id === clerkUser.primaryEmailAddressId)?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress;
           if (primaryEmail) {
-            users[i].email = primaryEmail;
+            user.email = primaryEmail;
           }
         } catch (e) {
-          console.error(`Failed to fetch email for ${users[i].id}`, e);
+          console.error(`Failed to fetch email for ${user.id}`, e);
         }
       }
     }
