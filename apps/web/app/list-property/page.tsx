@@ -193,7 +193,7 @@ export default function ListPropertyPage() {
         setErrorMsg("Please fill all the required fields: Rent and Deposit are required.");
         return;
       }
-      if (formData.listingType === "SELL" && !formData.rent) {
+      if (formData.listingType === "BUY" && !formData.rent) {
         setErrorMsg("Please fill the Selling Price field.");
         return;
       }
@@ -350,9 +350,9 @@ export default function ListPropertyPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setFormData({ ...formData, listingType: "SELL" })}
+                  onClick={() => setFormData({ ...formData, listingType: "BUY" })}
                   className={`flex-1 rounded-lg py-3 text-[15px] font-bold transition-all ${
-                    formData.listingType === "SELL" 
+                    formData.listingType === "BUY" 
                       ? "bg-white text-[#0052FF] shadow-sm" 
                       : "text-gray-500 hover:text-gray-700"
                   }`}
