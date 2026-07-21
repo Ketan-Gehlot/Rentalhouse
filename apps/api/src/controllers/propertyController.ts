@@ -79,11 +79,11 @@ export const getProperties = async (req: AuthRequest, res: Response) => {
     const { city, propertyType, minRent, maxRent, listingType } = req.query;
 
     const filter: any = { status: 'ACTIVE' };
-    
+
     if (city) filter.city = { contains: city as string };
     if (propertyType) filter.propertyType = propertyType as string;
     if (listingType) filter.listingType = listingType as string;
-    
+
     if (minRent || maxRent) {
       filter.rent = {};
       if (minRent) filter.rent.gte = parseFloat(minRent as string);
@@ -145,12 +145,12 @@ export const getPropertyById = async (req: AuthRequest, res: Response) => {
         media: true,
         amenities: true,
         owner: {
-          select: { 
+          select: {
             id: true,
-            name: true, 
+            name: true,
             isSuperTrusted: true,
             createdAt: true,
-            verification: { select: { status: true } } 
+            verification: { select: { status: true } }
           }
         }
       }
@@ -280,7 +280,7 @@ export const contactOwner = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.auth?.userId;
     if (!userId) return res.status(401).json({ error: 'Unauthorized' });
-    
+
     const propertyId = req.params.id as string;
 
     // Fetch the buyer's details
@@ -297,13 +297,13 @@ export const contactOwner = async (req: AuthRequest, res: Response) => {
     if (!property.owner) return res.status(404).json({ error: 'Owner not found' });
 
     let ownerEmail = property.owner.email;
-    
+
     // Attempt to resolve real email if it's a dummy email
     if (ownerEmail.endsWith('@clerk.dev')) {
       try {
         const clerkUser = await clerkClient.users.getUser(property.owner.id);
         const primaryEmail = clerkUser.emailAddresses.find(e => e.id === clerkUser.primaryEmailAddressId)?.emailAddress || clerkUser.emailAddresses[0]?.emailAddress;
-        
+
         if (primaryEmail) {
           ownerEmail = primaryEmail;
           // Optimistically update the database with the real email
